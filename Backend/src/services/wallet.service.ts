@@ -1,4 +1,5 @@
 import { db } from "../prisma/db";
+import { hashPassword } from "../lib/password.js";
 
 
 export class AppError extends Error {
@@ -6,21 +7,37 @@ export class AppError extends Error {
         super(message);
     }
 }
+ 
 
 export async function createUserWithWallet(input: {
-    email: string;
-    username: string;
-}){
-    return db.transaction(async (tx) => {
-        const user = await tx.orm.public.User.create(input);
+  email: string;
+  username: string;
+  password: string;
+}) {
+  
+  const email = input.email.toLowerCase();
+  const username = input.username.toLowerCase();
 
-        const wallet = await tx.orm.public.Account.create({
-            userId: user.id,
-            kind: "USER_WALLET",
-            currency: "NGN",
-        })
-        return { user, wallet};
-    })
+  const emailTaken = await db.orm.public.User.where({ email }).first();
+  const usernameTaken = await db.orm.public.User.where({ username }).first();
+  if (emailTaken || usernameTaken) {
+    throw new AppError(409, "Email or username already in use");
+  }
+
+  const passwordHash = await hashPassword(input.password);
+
+  return db.transaction(async (tx) => {
+    const user = await tx.orm.public.User.create({ email, username, passwordHash });
+
+    await tx.orm.public.Account.create({
+      userId: user.id,
+      kind: "USER_WALLET",
+      currency: "NGN",
+    });
+
+    // only the safe fields: never the hash
+    return { id: user.id, email: user.email, username: user.username };
+  });
 }
 
 export async function getBalanceKobo (userId: number) {
@@ -257,4 +274,61 @@ export async function lookupUser(username: string){
     if (!user) throw new AppError(404, "user not found")
         return{
     username: user.username, displayName: user.name || user.username}
+}
+
+//get transaction history
+ export async function getTransactions(userId: number) {
+  const wallet = await db.orm.public.Account.where({
+    userId,
+    kind: "USER_WALLET",
+  }).first();
+
+  if (!wallet) throw new AppError(404, "Wallet not found");
+
+  const entries = await db.orm.public.LedgerEntry.where({
+    accountId: wallet.id,
+  }).all();
+
+  // newest first (ids only go up over time), keep the latest 20
+  const latest = entries.sort((a, b) => b.id - a.id).slice(0, 20);
+
+  const items = [];
+  for (const entry of latest) {
+    const transaction = await db.orm.public.Transaction.where({
+      id: entry.transactionId,
+    }).first();
+    if (!transaction) continue;
+
+    const amount = BigInt(entry.amountKobo);
+    let title = "Transaction";
+
+    if (transaction.type === "DEPOSIT") title = "Added money";
+    else if (transaction.type === "WITHDRAWAL") title = "Withdrawal";
+    else if (transaction.type === "TRANSFER") {
+      const name = await otherPartyName(transaction.id, wallet.id);
+      title = amount < BigInt(0) ? `Sent to ${name}` : `Received from ${name}`;
+    }
+
+    items.push({
+      id: entry.id,
+      title,
+      type: transaction.type,
+      status: transaction.status,
+      amountKobo: amount.toString(),
+      createdAt: entry.createdAt,
+    });
+  }
+  return items;
+}
+
+async function otherPartyName(transactionId: number, myWalletId: number) {
+  const entries = await db.orm.public.LedgerEntry.where({ transactionId }).all();
+  const other = entries.find((e) => e.accountId !== myWalletId);
+  if (!other) return "someone";
+
+  const account = await db.orm.public.Account.where({ id: other.accountId }).first();
+  if (!account?.userId) return "someone";
+
+  const user = await db.orm.public.User.where({ id: account.userId }).first();
+  return user ? user.name || user.username : "someone";
 }

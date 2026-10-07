@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import walletRoutes from './src/routes/wallet.routes';
+import { errorHandler } from './src/middleware/errorHandler';
 
 
 const app = express();
@@ -13,6 +14,8 @@ app.use(express.json());
 
 //post requests
 app.use('/api', walletRoutes);
+
+app.use(errorHandler);
 
 app.get('/', (req, res) => {
     res.send("Hello Swiftbuck api at your service");

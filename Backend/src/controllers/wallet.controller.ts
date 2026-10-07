@@ -12,10 +12,10 @@ import {
 
 type UserIdParams = { userId: string };
 
-const createUserSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(20),
-  password: z.string().min(1),
+ const createUserSchema = z.object({
+  email: z.email(),
+  username: z.string().regex(/^[a-zA-Z0-9_]{3,20}$/),
+  password: z.string().min(8).max(128),
 });
 
 const userIdSchema = z.coerce.number().int().positive();

@@ -5,10 +5,12 @@ model User {
   email     String   @unique
   username  String   @unique
   name      String?
+  passwordHash  String?
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
 
   accounts  Account[]
+  sessions  Session[]
 }
 
 model Account {
@@ -49,4 +51,17 @@ model LedgerEntry {
 
   @@index([transactionId])
   @@index([accountId])
+}
+
+
+model Session {
+  id        Int               @id @default(autoincrement())
+  tokenHash String            @unique
+  userId    Int
+  expiresAt TimestamptzString
+  createdAt TimestamptzString @default(now())
+
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

@@ -77,3 +77,16 @@ export function transfer(
     body: JSON.stringify({ receiverUsername, amountKobo, reference }),
   });
 }
+
+export type ActivityItem = {
+  id: number;
+  title: string;
+  type: "DEPOSIT" | "WITHDRAWAL" | "TRANSFER";
+  status: string;
+  amountKobo: string;
+  createdAt: string;
+};
+
+export function getTransactions(userId: number) {
+  return request<ActivityItem[]>(`/api/wallets/${userId}/transactions`);
+}
