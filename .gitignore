@@ -1,0 +1,27 @@
+# Dependencies
+**/node_modules/
+
+# Environment files and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build and generated output
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/coverage/
+**/.turbo/
+**/.cache/
+
+# Logs and local tooling
+**/*.log
+*.tsbuildinfo
+.DS_Store
+*.pem
+
+# Local database and generated Prisma output
+**/*.db
+**/*.db-journal
+**/prisma/generated/

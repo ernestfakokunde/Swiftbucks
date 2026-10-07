@@ -1,0 +1,52 @@
+// use prisma-8
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String   @unique
+  name      String?
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  accounts  Account[]
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  kind      String
+  currency  String   @default("NGN")
+
+  user      User?    @relation(fields: [userId], references:[id])
+  entries   LedgerEntry[]
+
+  createdAt TimestamptzString @default(now())
+
+  @@unique([userId, currency])
+  @@index([userId])
+}
+
+model Transaction {
+  id           Int               @id @default(autoincrement())
+  reference    String            @unique
+  type         String
+  status       String            @default("PENDING")
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+
+  entries      LedgerEntry[]
+}
+
+model LedgerEntry {
+   id            Int               @id @default(autoincrement())
+  transactionId Int
+  accountId     Int
+  amountKobo    BigInt
+  createdAt     TimestamptzString @default(now())
+
+  transaction   Transaction       @relation(fields: [transactionId], references: [id])
+  account       Account           @relation(fields: [accountId], references: [id])
+
+  @@index([transactionId])
+  @@index([accountId])
+}
