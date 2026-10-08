@@ -7,7 +7,8 @@ export function nairaToKobo(input: string): number | null {
   if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
 
   const [naira, kobo = ""] = clean.split(".");
-  return Number(naira) * 100 + Number(kobo.padEnd(2, "0"));
+  const total = BigInt(naira) * BigInt(100) + BigInt(kobo.padEnd(2, "0"));
+  return total <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(total) : null;
 }
 
 // Turns kobo from the API ("200050") into display text ("₦2,000.50").

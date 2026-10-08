@@ -1,82 +1,20 @@
- const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { queryClient } from "@/lib/queryClient";
 
-// ---------- Types: the shape of what the backend sends back ----------
+export type User = {
+  id: number;
+  email: string;
+  username: string;
+  name?: string | null;
+};
+
 export type Balance = { balanceKobo: string };
 export type MoneyResult = { transactionId: number; duplicate: boolean };
-export type CreatedUser = {
-  user: { id: number; email: string; username: string };
-  wallet: { id: number };
-};
 export type UserLookup = { username: string; displayName: string };
-
-// ---------- Errors ----------
-export class ApiError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
-
-// ---------- The one function that talks to the backend ----------
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers: { "Content-Type": "application/json", ...options?.headers },
-    });
-  } catch {
-    throw new ApiError(0, "Can't reach Swiftbuck. Check your connection and try again.");
-  }
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new ApiError(res.status, data?.error ?? "Something went wrong. Try again.");
-  }
-  return data as T;
-}
-
-// ---------- One function per endpoint ----------
-export function getBalance(userId: number) {
-  return request<Balance>(`/api/wallets/${userId}/balance`);
-}
-
-export function createUser(email: string, username: string) {
-  return request<CreatedUser>(`/api/users`, {
-    method: "POST",
-    body: JSON.stringify({ email, username }),
-  });
-}
-
-export function lookupUser(username: string) {
-  return request<UserLookup>(`/api/users/lookup?username=${encodeURIComponent(username)}`);
-}
-
-export function deposit(userId: number, amountKobo: number, reference: string) {
-  return request<MoneyResult>(`/api/wallets/${userId}/deposit`, {
-    method: "POST",
-    body: JSON.stringify({ amountKobo, reference }),
-  });
-}
-
-export function withdraw(userId: number, amountKobo: number, reference: string) {
-  return request<MoneyResult>(`/api/wallets/${userId}/withdraw`, {
-    method: "POST",
-    body: JSON.stringify({ amountKobo, reference }),
-  });
-}
-
-export function transfer(
-  userId: number,
-  receiverUsername: string,
-  amountKobo: number,
-  reference: string
-) {
-  return request<MoneyResult>(`/api/wallets/${userId}/transfer`, {
-    method: "POST",
-    body: JSON.stringify({ receiverUsername, amountKobo, reference }),
-  });
-}
+export type DepositInitialization = {
+  authorizationUrl: string;
+  reference: string;
+};
+export type DepositStatus = "PENDING" | "SUCCESS" | "MISMATCH";
 
 export type ActivityItem = {
   id: number;
@@ -87,6 +25,136 @@ export type ActivityItem = {
   createdAt: string;
 };
 
-export function getTransactions(userId: number) {
-  return request<ActivityItem[]>(`/api/wallets/${userId}/transactions`);
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+function safeNextPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  return value;
+}
+
+function handleUnauthorized(path: string) {
+  if (typeof window === "undefined") return;
+  const currentPath = window.location.pathname;
+  const isPublicAuthPage = currentPath === "/login" || currentPath === "/signup";
+  const isMeCheck = path === "/auth/me";
+  if (isPublicAuthPage && isMeCheck) return;
+  if (isPublicAuthPage) return;
+
+  queryClient.clear();
+  const next = encodeURIComponent(
+    safeNextPath(`${window.location.pathname}${window.location.search}`),
+  );
+  // The API layer has no router instance; force a full navigation after clearing auth state.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.assign(`/login?next=${next}`);
+}
+
+export async function request<T>(
+  path: string,
+  options?: RequestInit,
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...options,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      "Can't reach Swiftbuck. Check your connection and try again.",
+    );
+  }
+
+  if (response.status === 204) return undefined as T;
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    if (response.status === 401) handleUnauthorized(path);
+    throw new ApiError(
+      response.status,
+      data?.error ?? "Something went wrong. Try again.",
+    );
+  }
+  return data as T;
+}
+
+export function getMe() {
+  return request<User>("/api/auth/me");
+}
+
+export function login(email: string, password: string) {
+  return request<User>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function logout() {
+  return request<void>("/api/auth/logout", { method: "POST" });
+}
+
+export function createUser(
+  email: string,
+  username: string,
+  password: string,
+) {
+  return request<User>("/api/users", {
+    method: "POST",
+    body: JSON.stringify({ email, username, password }),
+  });
+}
+
+export function getBalance() {
+  return request<Balance>("/api/wallet/balance");
+}
+
+export function lookupUser(username: string) {
+  return request<UserLookup>(
+    `/api/users/lookup?username=${encodeURIComponent(username)}`,
+  );
+}
+
+export function transfer(
+  receiverUsername: string,
+  amountKobo: number,
+  reference: string,
+) {
+  return request<MoneyResult>("/api/wallet/transfer", {
+    method: "POST",
+    body: JSON.stringify({ receiverUsername, amountKobo, reference }),
+  });
+}
+
+export function withdraw(amountKobo: number, reference: string) {
+  return request<MoneyResult>("/api/wallet/withdraw", {
+    method: "POST",
+    body: JSON.stringify({ amountKobo, reference }),
+  });
+}
+
+export function initializeDeposit(amountKobo: number) {
+  return request<DepositInitialization>("/api/wallet/deposit/initialize", {
+    method: "POST",
+    body: JSON.stringify({ amountKobo }),
+  });
+}
+
+export function getDepositStatus(reference: string) {
+  return request<{ status: DepositStatus }>(
+    `/api/wallet/deposit/status?reference=${encodeURIComponent(reference)}`,
+  );
+}
+
+export function getTransactions() {
+  return request<ActivityItem[]>("/api/wallet/transactions");
 }

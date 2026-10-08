@@ -1,18 +1,27 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getMockActivity, getMockBalance } from "@/lib/mock";
+import { getBalance, getTransactions } from "@/lib/api";
 
-export function useBalance(userId: number) {
+export function useBalance() {
   return useQuery({
-    queryKey: ["wallet", userId, "balance"],
-    queryFn: getMockBalance,
+    queryKey: ["balance"],
+    queryFn: getBalance,
+    staleTime: 15_000,
+    retry: (failureCount, error) =>
+      failureCount < 1 && error instanceof Error && "status" in error &&
+      (error as { status: number }).status === 0,
+    refetchOnWindowFocus: true,
   });
 }
 
-export function useActivity(userId: number) {
+export function useActivity() {
   return useQuery({
-    queryKey: ["wallet", userId, "activity"],
-    queryFn: getMockActivity,
+    queryKey: ["activity"],
+    queryFn: getTransactions,
+    staleTime: 30_000,
+    retry: (failureCount, error) =>
+      failureCount < 1 && error instanceof Error && "status" in error &&
+      (error as { status: number }).status === 0,
   });
 }

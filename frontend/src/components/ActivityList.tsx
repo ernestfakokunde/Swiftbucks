@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { formatNaira } from "@/lib/money";
-import type { ActivityItem } from "@/lib/mock";
+import type { ActivityItem } from "@/lib/api";
+
+function formatActivityDate(value: string) {
+  const normalized = value.includes("T") ? value : value.replace(" ", "T").replace(/(\.\d{3})\d+/, "$1");
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? "Recent" : date.toLocaleString();
+}
 
 export function ActivityList({
   items,
@@ -27,7 +33,7 @@ export function ActivityList({
                   </span>
                 ) : null}
               </p>
-              <p className="mt-0.5 text-xs text-muted">{item.date}</p>
+              <p className="mt-0.5 text-xs text-muted">{formatActivityDate(item.createdAt)}</p>
             </div>
             <strong
               className={[
@@ -49,6 +55,7 @@ export function ActivityList({
           See all
         </Link>
       ) : null}
+      {!items.length ? <p className="py-8 text-center text-sm text-muted">No transactions yet.</p> : null}
     </div>
   );
 }

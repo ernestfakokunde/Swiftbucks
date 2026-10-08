@@ -7,7 +7,7 @@ import { WalletSkeleton } from "@/components/WalletSkeleton";
 import { useActivity } from "@/hooks/useWallet";
 
 export default function ActivityPage() {
-  const activity = useActivity(1);
+  const activity = useActivity();
 
   return (
     <LayoutShell wide>

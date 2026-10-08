@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BottomNav } from "./BottomNav";
+import { ProtectedShell } from "./ProtectedShell";
 
 export function LayoutShell({
   children,
@@ -9,7 +10,8 @@ export function LayoutShell({
   wide?: boolean;
 }) {
   return (
-    <div
+    <ProtectedShell>
+      <div
       className={[
         "mx-auto flex min-h-screen w-full flex-col p-3 sm:p-4 md:min-h-0 md:items-center md:justify-center md:p-8",
         wide ? "max-w-[1240px]" : "max-w-[420px]",
@@ -24,6 +26,7 @@ export function LayoutShell({
         {children}
         <BottomNav />
       </main>
-    </div>
+      </div>
+    </ProtectedShell>
   );
 }

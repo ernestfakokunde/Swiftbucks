@@ -65,3 +65,17 @@ model Session {
 
   @@index([userId])
 }
+
+ model paymentIntent {
+  id         Int               @id @default(autoincrement())
+  reference  String            @unique
+  userId     Int
+  amountKobo BigInt
+  status     String            @default("PENDING")
+  createdAt  TimestamptzString @default(now())
+  updatedAt  temporal.updatedAtString()
+
+  user       User              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}

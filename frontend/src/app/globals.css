@@ -64,6 +64,30 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+.auth-logo-art.mobile {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+}
+
+.auth-logo-art.mobile svg {
+  width: 100%;
+  height: 100%;
+}
+
+.auth-logo-tile {
+  fill: var(--orange);
+}
+
+.auth-logo-lines {
+  stroke: white;
+}
+
+.auth-logo-coin {
+  fill: white;
+}
+
 @media (min-width: 768px) {
   body {
     display: flex;
@@ -74,5 +98,98 @@ a:focus-visible {
       radial-gradient(circle at 12% 0%, rgba(23, 32, 43, 0.2), transparent 34%),
       radial-gradient(circle at 90% 8%, rgba(249, 115, 22, 0.18), transparent 30%),
       var(--bg);
+  }
+
+  .auth-showcase-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 520px;
+    height: 520px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.28), transparent 64%);
+    transform: translate(-50%, -50%);
+    animation: auth-glow 1.8s ease-out both;
+  }
+
+  .auth-showcase-content,
+  .auth-showcase-wordmark,
+  .auth-showcase-tagline,
+  .auth-logo-tile,
+  .auth-logo-lines,
+  .auth-logo-coin {
+    animation-fill-mode: both;
+  }
+
+  .auth-logo-art {
+    position: relative;
+    width: 142px;
+    height: 142px;
+    z-index: 1;
+  }
+
+  .auth-logo-art svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .auth-logo-tile {
+    fill: var(--orange);
+    transform-origin: center;
+    animation: auth-pop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s;
+  }
+
+  .auth-logo-lines {
+    transform-origin: right center;
+    animation: auth-streak 0.45s ease-out 0.8s;
+  }
+
+  .auth-logo-coin {
+    transform-origin: center;
+    animation: auth-drop 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s;
+  }
+
+  .auth-showcase-wordmark {
+    animation: auth-rise 0.7s ease-out 1.15s;
+  }
+
+  .auth-showcase-tagline {
+    animation: auth-rise 0.7s ease-out 1.4s;
+  }
+
+  @keyframes auth-glow {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  @keyframes auth-pop {
+    from { opacity: 0; transform: scale(0.55); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes auth-streak {
+    from { opacity: 0; transform: scaleX(0); }
+    to { opacity: 1; transform: scaleX(1); }
+  }
+
+  @keyframes auth-drop {
+    from { opacity: 0; transform: translateY(-50px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes auth-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .auth-showcase-glow,
+    .auth-logo-tile,
+    .auth-logo-lines,
+    .auth-logo-coin,
+    .auth-showcase-wordmark,
+    .auth-showcase-tagline {
+      animation: none;
+    }
   }
 }

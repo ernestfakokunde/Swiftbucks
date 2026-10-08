@@ -12,7 +12,7 @@ type FlowResultProps = {
   status?: "Completed" | "Processing";
 };
 
-export function FlowResult({ amountKobo, line, onDone, invite }: FlowResultProps) {
+export function FlowResult({ amountKobo, line, onDone, invite, status }: FlowResultProps) {
   const reduceMotion = useReducedMotion();
 
   return (

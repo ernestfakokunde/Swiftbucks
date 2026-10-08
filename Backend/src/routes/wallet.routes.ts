@@ -7,32 +7,33 @@ import {
   lookup,
   transferFunds,
   withdrawFunds,
-} from "../controllers/wallet.controller";
-import { asyncHandler } from "../middleware/asyncHandler";
+} from "../controllers/wallet.controller.js";
+import {
+  getDepositStatus,
+  initializeDeposit,
+} from "../controllers/payment.controller.js";
+import { requireAuth } from "../middleware/requireAuth.js";
+import {
+  lookupLimiter,
+  signupLimiter,
+  walletPostLimiter,
+} from "../middleware/rateLimit.js";
 
 const router = Router();
 
-router.post("/users", asyncHandler(createUser));
-router.get(
-  "/wallets/:userId/balance",
-  asyncHandler<{ userId: string }>(getBalance),
-);
+router.post("/users", signupLimiter, createUser);
+router.use(requireAuth);
+router.get("/wallet/balance", getBalance);
+router.get("/wallet/transactions", getTransactionHistory);
+router.post("/wallet/deposit", walletPostLimiter, depositFunds);
 router.post(
-  "/wallets/:userId/deposit",
-  asyncHandler<{ userId: string }>(depositFunds),
+  "/wallet/deposit/initialize",
+  walletPostLimiter,
+  initializeDeposit,
 );
-router.post(
-  "/wallets/:userId/withdraw",
-  asyncHandler<{ userId: string }>(withdrawFunds),
-);
-router.post(
-  "/wallets/:userId/transfer",
-  asyncHandler<{ userId: string }>(transferFunds),
-);
-router.get("/users/lookup", asyncHandler(lookup));
-router.get(
-  "/wallets/:userId/transactions",
-  asyncHandler<{ userId: string }>(getTransactionHistory),
-);
+router.get("/wallet/deposit/status", getDepositStatus);
+router.post("/wallet/withdraw", walletPostLimiter, withdrawFunds);
+router.post("/wallet/transfer", walletPostLimiter, transferFunds);
+router.get("/users/lookup", lookupLimiter, lookup);
 
 export default router;

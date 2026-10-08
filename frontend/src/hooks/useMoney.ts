@@ -1,8 +1,7 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deposit, withdraw, transfer } from "@/lib/api";
+import { withdraw, transfer } from "@/lib/api";
 import { nairaToKobo } from "@/lib/money";
-import { useUser } from "@/context/UserContext";
 import { useReference } from "./useReference";
 
 function toKobo(amount: string) {
@@ -13,17 +12,16 @@ function toKobo(amount: string) {
 
 function useMoneyAction<V>(
   prefix: string,
-  call: (userId: number, v: V, reference: string) => Promise<unknown>
+  call: (v: V, reference: string) => Promise<unknown>,
 ) {
-  const { userId } = useUser();
   const ref = useReference(prefix);
   const qc = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (v: V) => call(userId, v, ref.get()),
+    mutationFn: (v: V) => call(v, ref.get()),
     onSuccess: () => {
-      ref.reset(); // next attempt gets a fresh reference
-      qc.invalidateQueries({ queryKey: ["balance", userId] });
+      ref.reset();
+      qc.invalidateQueries({ queryKey: ["balance"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
     },
     // on error we do NOT reset, so a retry reuses the same reference
@@ -35,16 +33,10 @@ function useMoneyAction<V>(
 export const useTransfer = () =>
   useMoneyAction<{ username: string; amount: string }>(
     "tr",
-    (userId, v, reference) =>
-      transfer(userId, v.username, toKobo(v.amount), reference)
-  );
-
-export const useDeposit = () =>
-  useMoneyAction<{ amount: string }>("dep", (userId, v, reference) =>
-    deposit(userId, toKobo(v.amount), reference)
+    (v, reference) => transfer(v.username, toKobo(v.amount), reference),
   );
 
 export const useWithdraw = () =>
-  useMoneyAction<{ amount: string }>("wd", (userId, v, reference) =>
-    withdraw(userId, toKobo(v.amount), reference)
+  useMoneyAction<{ amount: string }>("wd", (v, reference) =>
+    withdraw(toKobo(v.amount), reference),
   );

@@ -7,10 +7,12 @@ import { ActionButton } from "@/components/ActionButton";
 import { ActivityList } from "@/components/ActivityList";
 import { WalletError } from "@/components/WalletError";
 import { WalletSkeleton } from "@/components/WalletSkeleton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
-  const balance = useBalance(1);
-  const activity = useActivity(1);
+  const balance = useBalance();
+  const activity = useActivity();
+  const { user, logout } = useAuth();
 
   if (balance.isLoading || activity.isLoading) {
     return (
@@ -37,11 +39,11 @@ export default function Home() {
     <LayoutShell wide>
       <header className="mb-[18px] flex items-center justify-between">
         <span className="font-display text-lg font-bold tracking-tight text-deep">⚡ Swiftbuck</span>
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-deep font-display text-sm font-bold text-white shadow-[0_8px_16px_rgba(23,32,43,0.18)]">
-          A
-        </span>
+        <button type="button" onClick={() => void logout()} aria-label="Log out" className="grid h-9 w-9 place-items-center rounded-full bg-deep font-display text-sm font-bold text-white shadow-[0_8px_16px_rgba(23,32,43,0.18)]">
+          {(user?.username[0] ?? "U").toUpperCase()}
+        </button>
       </header>
-      <p className="m-0 text-[13px] text-muted">Hi, Ada</p>
+      <p className="m-0 text-[13px] text-muted">Hi, {user?.name ?? user?.username}</p>
       <div className="grid gap-8 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:items-start md:gap-12">
         <section>
           <BalanceCard balanceKobo={balance.data.balanceKobo} />

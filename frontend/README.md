@@ -34,3 +34,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Manual test checklist
+
+- [ ] Sign up a new user and confirm the home page shows a zero balance.
+- [ ] Refresh while logged in, then log out and confirm protected pages remain inaccessible.
+- [ ] Log in with a wrong password and confirm the generic error.
+- [ ] Test unknown, self, over-balance, and successful send flows.
+- [ ] Double-click Send and confirm only one transfer is created.
+- [ ] Initialize Paystack checkout, return to the done page, and wait for webhook confirmation.
+- [ ] Confirm withdraw shows the test-mode notice and result state.
+- [ ] Stop the backend and confirm the retry/error state is shown.
+- [ ] Confirm no client code uses `parseFloat`, localStorage for secrets, fake deposits, or response logging.

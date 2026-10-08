@@ -5,11 +5,11 @@ export function errorHandler(
   err: unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   // Our own labelled errors: send the status and message the service chose
   if (err instanceof AppError) {
-    return res.status(Number(err.status)).json({ error: err.message });
+    return res.status(err.status).json({ error: err.message });
   }
 
   // Anything else is a real bug or outage: log it, tell the user nothing sensitive

@@ -1,9 +1,9 @@
-import { db } from "../prisma/db";
+import { db } from "../prisma/db.js";
 import { hashPassword } from "../lib/password.js";
 
 
 export class AppError extends Error {
-    constructor(public status: Number, message: string) {
+    constructor(public status: number, message: string) {
         super(message);
     }
 }
@@ -203,7 +203,9 @@ export async function getBalanceKobo (userId: number) {
         return { transactionId: existing.id, duplicate: true};
     }
 
-            const receiver = await db.orm.public.User.where({ username: receiverusername }).first();
+        const receiver = await db.orm.public.User.where({
+            username: receiverusername.toLowerCase(),
+        }).first();
         if (!receiver) throw new AppError(404, "Receiver not found");
 
         const receiverWallet = await db.orm.public.Account.where({
@@ -269,7 +271,7 @@ export async function getBalanceKobo (userId: number) {
 
 export async function lookupUser(username: string){
     const user = await db.orm.public.User.where({
-        username
+          username: username.toLowerCase(),
     }).first();
     if (!user) throw new AppError(404, "user not found")
         return{
