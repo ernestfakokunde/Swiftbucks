@@ -129,8 +129,12 @@ export async function getBalanceKobo (userId: number) {
 
     return db.transaction( async (tx)=>{
         await tx.query(
-            db.raw.sql`SELECT pg_advisory_xact_lock(hashtext(${reference})) AS lock`
-            .returnsRow({ lock: "pg/int8@1" })
+            db.raw.sql`SELECT lock_key AS lock
+                FROM (
+                    SELECT hashtext(${reference}) AS lock_key,
+                           pg_advisory_xact_lock(hashtext(${reference})) AS acquired
+                ) advisory_lock`
+            .returnsRow({ lock: "pg/int4@1" })
             .build(),
         );
         const lockedExisting = await tx.orm.public.Transaction.where({ reference }).first();
