@@ -10,6 +10,7 @@ export function FlowConfirm({
   onConfirm,
   onEdit,
   isSubmitting,
+  error,
 }: {
   amountKobo: number;
   rows: SummaryRow[];
@@ -17,6 +18,7 @@ export function FlowConfirm({
   onConfirm: () => void;
   onEdit: () => void;
   isSubmitting: boolean;
+  error?: string | null;
 }) {
   return (
     <>
@@ -33,6 +35,7 @@ export function FlowConfirm({
         {formatNaira(amountKobo)}
       </p>
       <p className="m-0 text-center text-[13px] text-muted">Please check the details</p>
+      {error ? <p className="mt-3 text-center text-[13px] text-red" role="alert">{error}</p> : null}
       <div className="mt-5 overflow-hidden rounded-[18px] border border-line">
         {rows.map((row) => (
           <div key={row.label} className="flex justify-between gap-3 px-4 py-3.5 text-sm [&+div]:border-t [&+div]:border-line">

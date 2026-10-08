@@ -20,7 +20,11 @@ function DoneContent() {
     queryKey: ["deposit-status", reference],
     queryFn: () => getDepositStatus(reference as string),
     enabled: Boolean(reference) && !hidden && !timedOut,
-    refetchInterval: (query) => query.state.data?.status === "PENDING" ? 2_000 : false,
+    refetchInterval: (query) =>
+      query.state.data?.status === "PENDING" ||
+      (query.state.data === undefined && query.state.error === null)
+        ? 2_000
+        : false,
     retry: false,
   });
   useEffect(() => {
@@ -47,7 +51,28 @@ function DoneContent() {
     status.data?.status === "SUCCESS" ? "Payment added to your wallet." :
     status.data?.status === "MISMATCH" ? "We couldn't confirm this payment. Contact support." :
     "Waiting for confirmation";
-  return <LayoutShell><div className="flex min-h-[560px] flex-col items-center justify-center text-center"><Loader /><h1 className="mt-5 font-display text-xl font-bold">{message}</h1><p className="mt-2 text-sm text-muted">We only mark the payment complete after Paystack confirms it.</p><Button className="mt-6" type="button" onClick={() => router.push("/")}>Home</Button></div></LayoutShell>;
+  const waiting = !timedOut && !status.error &&
+    (!status.data || status.data.status === "PENDING");
+  return (
+    <LayoutShell>
+      <div className="flex min-h-[560px] flex-col items-center justify-center text-center">
+        {waiting ? <Loader /> : status.data?.status === "SUCCESS" ? (
+          <div className="grid h-20 w-20 place-items-center rounded-full border-4 border-orange text-4xl text-orange" aria-hidden="true">
+            ✓
+          </div>
+        ) : null}
+        <h1 className="mt-5 font-display text-xl font-bold" aria-live="polite">{message}</h1>
+        <p className="mt-2 text-sm text-muted">
+          {waiting
+            ? "We only mark the payment complete after Paystack confirms it."
+            : status.data?.status === "SUCCESS"
+              ? "Your balance has been updated."
+              : "You can return home while we finish processing this payment."}
+        </p>
+        <Button className="mt-6" type="button" onClick={() => router.push("/")}>Home</Button>
+      </div>
+    </LayoutShell>
+  );
 }
 
 export default function DepositDonePage() {

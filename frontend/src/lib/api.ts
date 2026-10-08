@@ -59,20 +59,28 @@ export async function request<T>(
   options?: RequestInit,
 ): Promise<T> {
   let response: Response;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30_000);
   try {
     response = await fetch(path, {
       ...options,
+      signal: options?.signal ?? controller.signal,
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...options?.headers,
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError(0, "The request took too long. Please try again.");
+    }
     throw new ApiError(
       0,
       "Can't reach Swiftbuck. Check your connection and try again.",
     );
+  } finally {
+    window.clearTimeout(timeout);
   }
 
   if (response.status === 204) return undefined as T;

@@ -103,6 +103,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
         onConfirm={() => mutation.mutate()}
         onEdit={() => { mutation.reset(); setStep("form"); }}
         isSubmitting={mutation.isPending}
+        error={mutation.error instanceof Error ? mutation.error.message : null}
       />
     );
   }
