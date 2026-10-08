@@ -42,6 +42,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - [ ] Test unknown, self, over-balance, and successful send flows.
 - [ ] Double-click Send and confirm only one transfer is created.
 - [ ] Initialize Paystack checkout, return to the done page, and wait for webhook confirmation.
-- [ ] Confirm withdraw shows the test-mode notice and result state.
+- [ ] Configure Paystack transfers, withdraw to a valid Nigerian bank account, and confirm success/failure reversal webhooks.
 - [ ] Stop the backend and confirm the retry/error state is shown.
 - [ ] Confirm no client code uses `parseFloat`, localStorage for secrets, fake deposits, or response logging.

@@ -135,10 +135,15 @@ export function transfer(
   });
 }
 
-export function withdraw(amountKobo: number, reference: string) {
+export function withdraw(
+  amountKobo: number,
+  reference: string,
+  bankCode: string,
+  accountNumber: string,
+) {
   return request<MoneyResult>("/api/wallet/withdraw", {
     method: "POST",
-    body: JSON.stringify({ amountKobo, reference }),
+    body: JSON.stringify({ amountKobo, reference, bankCode, accountNumber }),
   });
 }
 

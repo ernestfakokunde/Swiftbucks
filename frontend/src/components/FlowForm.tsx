@@ -15,7 +15,10 @@ import { useAuth } from "@/context/AuthContext";
 
 type FlowMode = "send" | "add" | "withdraw";
 type Values = { username: string; amount: string; bank: string; accountNumber: string };
-const banks = ["GTBank", "Access Bank", "Zenith Bank", "UBA", "First Bank", "Opay", "Kuda"];
+const banks = [
+  ["GTBank", "058"], ["Access Bank", "044"], ["Zenith Bank", "057"],
+  ["UBA", "033"], ["First Bank", "011"], ["Opay", "999992"], ["Kuda", "090267"],
+] as const;
 
 export function FlowForm({ mode }: { mode: FlowMode }) {
   const router = useRouter();
@@ -26,7 +29,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   const [submitted, setSubmitted] = useState<Values | null>(null);
   const [amountKobo, setAmountKobo] = useState(0);
   const form = useForm<Values>({
-    defaultValues: { username: "", amount: "", bank: banks[0], accountNumber: "" },
+    defaultValues: { username: "", amount: "", bank: banks[0][1], accountNumber: "" },
   });
   const watched = useWatch({ control: form.control });
   const username = (watched.username ?? "").replace(/^@/, "").toLowerCase();
@@ -61,7 +64,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
     mutationFn: async () => {
       if (amount === null) throw new Error("Enter a valid amount");
       if (isSend) return transfer(username, amount, reference.get());
-      if (isWithdraw) return withdraw(amount, reference.get());
+      if (isWithdraw) return withdraw(amount, reference.get(), submitted?.bank ?? "", submitted?.accountNumber ?? "");
       const result = await initializeDeposit(amount);
       const url = new URL(result.authorizationUrl);
       if (url.protocol !== "https:" || (url.hostname !== "paystack.com" && !url.hostname.endsWith(".paystack.com"))) {
@@ -89,7 +92,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
       : isAdd
         ? [{ label: "Pay with", value: "Card or bank transfer" }, { label: "Powered by", value: "Paystack" }]
         : [
-            { label: "To", value: `${submitted.bank} · ${submitted.accountNumber}` },
+            { label: "To", value: `${banks.find(([_, code]) => code === submitted.bank)?.[0] ?? "Bank"} · ${submitted.accountNumber}` },
             { label: "Fee", value: "₦0.00" },
           ];
     return (
@@ -145,9 +148,9 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
       )}
       {isWithdraw && (
         <>
-          <p className="mt-4 rounded-xl bg-bg p-3 text-xs text-muted">Test mode: no real bank transfer happens yet.</p>
+          <p className="mt-4 rounded-xl bg-bg p-3 text-xs text-muted">Transfers are processed securely by Paystack.</p>
           <label htmlFor="bank" className="mt-4 mb-2 text-[13px] text-muted">Bank</label>
-          <select id="bank" {...form.register("bank")} className="rounded-2xl border border-line bg-bg px-4 py-3.5 outline-none focus:border-orange">{banks.map((bank) => <option key={bank}>{bank}</option>)}</select>
+          <select id="bank" {...form.register("bank")} className="rounded-2xl border border-line bg-bg px-4 py-3.5 outline-none focus:border-orange">{banks.map(([name, code]) => <option key={code} value={code}>{name}</option>)}</select>
           <label htmlFor="accountNumber" className="mt-4 mb-2 text-[13px] text-muted">Account number</label>
           <input id="accountNumber" autoComplete="off" inputMode="numeric" maxLength={10} {...form.register("accountNumber")} className="rounded-2xl border border-line bg-bg px-4 py-3.5 outline-none focus:border-orange" />
         </>

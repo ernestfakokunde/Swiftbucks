@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "../prisma/db.js";
 import { initializePayment } from "../lib/paystack.js";
+import { verifyTransaction } from "../lib/paystack.js";
 import { AppError } from "./wallet.service.js";
 
 export async function startDeposit(userId: number, amountKobo: number) {
@@ -34,12 +35,26 @@ export async function depositStatus(userId: number, reference: string) {
   if (!intent || intent.userId !== userId) {
     throw new AppError(404, "Payment not found");
   }
-  return { status: intent.status };
+  if (intent.status === "PENDING") {
+    try {
+      const payment = await verifyTransaction(reference);
+      if (payment.status === "success") {
+        await creditFromWebhook({
+          event: "charge.success",
+          data: { reference: payment.reference, amount: payment.amount, fees: payment.fees },
+        });
+      }
+    } catch (error) {
+      console.error("Paystack verification failed:", error);
+    }
+  }
+  const current = await db.orm.public.paymentIntent.where({ reference }).first();
+  return { status: current?.status ?? intent.status };
 }
 
 export async function creditFromWebhook(event: {
   event: string;
-  data: { reference: string; amount: number };
+  data: { reference: string; amount: number; fees?: number | undefined };
 }) {
   if (event.event !== "charge.success") return;
 
@@ -81,6 +96,15 @@ export async function creditFromWebhook(event: {
         currency: "NGN",
       });
     }
+    let fees = await tx.orm.public.Account.where({
+      kind: "SYSTEM_PAYSTACK_FEES",
+    }).first();
+    if (!fees) {
+      fees = await tx.orm.public.Account.create({
+        kind: "SYSTEM_PAYSTACK_FEES",
+        currency: "NGN",
+      });
+    }
 
     const transaction = await tx.orm.public.Transaction.create({
       reference: fresh.reference,
@@ -91,7 +115,12 @@ export async function creditFromWebhook(event: {
     await tx.orm.public.LedgerEntry.create({
       transactionId: transaction.id,
       accountId: holding.id,
-      amountKobo: -BigInt(fresh.amountKobo),
+      amountKobo: -BigInt(event.data.amount - (event.data.fees ?? 0)),
+    });
+    await tx.orm.public.LedgerEntry.create({
+      transactionId: transaction.id,
+      accountId: fees.id,
+      amountKobo: -BigInt(event.data.fees ?? 0),
     });
     await tx.orm.public.LedgerEntry.create({
       transactionId: transaction.id,

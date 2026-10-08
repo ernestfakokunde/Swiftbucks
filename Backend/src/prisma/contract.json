@@ -24,6 +24,10 @@
       "model": "User",
       "namespace": "public"
     },
+    "Withdrawal": {
+      "model": "Withdrawal",
+      "namespace": "public"
+    },
     "paymentIntent": {
       "model": "paymentIntent",
       "namespace": "public"
@@ -358,6 +362,22 @@
                   "model": "LedgerEntry",
                   "namespace": "public"
                 }
+              },
+              "withdrawal": {
+                "cardinality": "1:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "transactionId"
+                  ]
+                },
+                "to": {
+                  "model": "Withdrawal",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -467,6 +487,21 @@
                   "model": "Session",
                   "namespace": "public"
                 }
+              },
+              "withdrawals": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Withdrawal",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -495,6 +530,170 @@
               },
               "namespaceId": "public",
               "table": "User"
+            }
+          },
+          "Withdrawal": {
+            "fields": {
+              "accountNumber": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "amountKobo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              },
+              "bankCode": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "recipientCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "reference": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "transactionId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "transferCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "transaction": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "transactionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Transaction",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "accountNumber": {
+                  "column": "accountNumber"
+                },
+                "amountKobo": {
+                  "column": "amountKobo"
+                },
+                "bankCode": {
+                  "column": "bankCode"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "recipientCode": {
+                  "column": "recipientCode"
+                },
+                "reference": {
+                  "column": "reference"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "transactionId": {
+                  "column": "transactionId"
+                },
+                "transferCode": {
+                  "column": "transferCode"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Withdrawal"
             }
           },
           "paymentIntent": {
@@ -984,6 +1183,151 @@
                 }
               ]
             },
+            "Withdrawal": {
+              "columns": {
+                "accountNumber": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "amountKobo": {
+                  "codecId": "pg/int8@1",
+                  "nativeType": "int8",
+                  "nullable": false
+                },
+                "bankCode": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "recipientCode": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "reference": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "transactionId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "transferCode": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "transactionId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Withdrawal"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Transaction"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Withdrawal"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "transferCode"
+                  ],
+                  "name": "Withdrawal_transferCode_idx_780d1215",
+                  "prefix": "Withdrawal_transferCode_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "Withdrawal_userId_idx_a489d58a",
+                  "prefix": "Withdrawal_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "reference"
+                  ]
+                },
+                {
+                  "columns": [
+                    "transactionId"
+                  ]
+                }
+              ]
+            },
             "paymentIntent": {
               "columns": {
                 "amountKobo": {
@@ -1081,10 +1425,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "fb09633cd5bd955061c566c1a80ec1d0c6e35d96fde4fa3c32596ecf46911274"
+    "storageHash": "666a52f0cd898dd12b4261fe4b8d0b37146ce3c4053c3f566232ce1b46d7caa8"
   },
   "execution": {
-    "executionHash": "e97176993ce19252370c1f422d6b848d931f32f9ac71bd5cbddddde4d6eac1ba",
+    "executionHash": "f2ef870d3c6cb5a9f8daf3a0af99ca1cff437c31e902ce3908a426aea7485c10",
     "mutations": {
       "defaults": [
         {
@@ -1113,6 +1457,21 @@
           },
           "ref": {
             "entry": "User",
+            "field": "updatedAt",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Withdrawal",
             "field": "updatedAt",
             "namespace": "public"
           }

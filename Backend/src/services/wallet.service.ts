@@ -1,5 +1,6 @@
 import { db } from "../prisma/db.js";
 import { hashPassword } from "../lib/password.js";
+import { createTransferRecipient, initiateTransfer } from "../lib/paystack.js";
 
 
 export class AppError extends Error {
@@ -108,7 +109,10 @@ export async function getBalanceKobo (userId: number) {
         })
  }
 
- export async function withdraw (userId:number, amountKobo: bigint, reference: string){
+ export async function withdraw (userId:number, amountKobo: bigint, reference: string, input: {
+    bankCode: string;
+    accountNumber: string;
+ }){
     const wallet = await db.orm.public.Account.where({
         userId,
         kind: "USER_WALLET",
@@ -118,12 +122,21 @@ export async function getBalanceKobo (userId: number) {
      const existing = await db.orm.public.Transaction.where({ reference}).first();
 
         if(existing){
-            return { transactionId: existing.id, duplicate: true};
+            return { transactionId: existing.id, duplicate: true, status: existing.status };
         }
 
      
 
     return db.transaction( async (tx)=>{
+        await tx.query(
+            db.raw.sql`SELECT pg_advisory_xact_lock(hashtext(${reference})) AS lock`
+            .returnsRow({ lock: "pg/int8@1" })
+            .build(),
+        );
+        const lockedExisting = await tx.orm.public.Transaction.where({ reference }).first();
+        if (lockedExisting) {
+            return { transactionId: lockedExisting.id, duplicate: true, status: lockedExisting.status };
+        }
 
         //lock the wallet row to prevent race conditions
 
@@ -161,7 +174,7 @@ export async function getBalanceKobo (userId: number) {
         const transaction = await tx.orm.public.Transaction.create({
             reference,
             type:"WITHDRAWAL",
-            status: "COMPLETED"
+            status: "PENDING"
         })
 
         await tx.orm.public.LedgerEntry.create({
@@ -176,8 +189,84 @@ export async function getBalanceKobo (userId: number) {
             amountKobo: BigInt(amountKobo),
         })
 
-        return { transactionId: transaction.id, duplicate: false}
+        const withdrawal = await tx.orm.public.Withdrawal.create({
+            reference,
+            transactionId: transaction.id,
+            userId,
+            amountKobo,
+            bankCode: input.bankCode,
+            accountNumber: input.accountNumber,
+        });
+
+        return { transactionId: transaction.id, withdrawalId: withdrawal.id, duplicate: false, status: "PENDING" }
     })
+    .then(async (result) => {
+        try {
+            const user = await db.orm.public.User.where({ id: userId }).first();
+            if (!user) throw new Error("User missing for withdrawal " + reference);
+            const recipient = await createTransferRecipient({
+                name: user.name ?? user.username,
+                accountNumber: input.accountNumber,
+                bankCode: input.bankCode,
+            });
+            await db.orm.public.Withdrawal.where({ id: result.withdrawalId }).update({
+                recipientCode: recipient.recipient_code,
+            });
+            const transfer = await initiateTransfer({
+                amountKobo,
+                recipientCode: recipient.recipient_code,
+                reference,
+            });
+            await db.orm.public.Withdrawal.where({ id: result.withdrawalId }).update({
+                transferCode: transfer.transfer_code,
+            });
+            return result;
+        } catch (error) {
+            await reverseWithdrawal(reference, "FAILED");
+            console.error("Paystack withdrawal failed:", error);
+            throw new AppError(502, "Could not start the withdrawal. Your balance was restored.");
+        }
+    })
+}
+
+export async function settleWithdrawal(reference: string, status: "SUCCESS" | "FAILED") {
+    const withdrawal = await db.orm.public.Withdrawal.where({ reference }).first();
+    if (!withdrawal) return;
+    if (withdrawal.status === status || withdrawal.status === "SUCCESS" || withdrawal.status === "FAILED") return;
+    if (status === "FAILED") {
+        await reverseWithdrawal(reference, status);
+        return;
+    }
+    await db.transaction(async (tx) => {
+        const transaction = await tx.orm.public.Transaction.where({ reference }).first();
+        if (!transaction || transaction.status !== "PENDING") return;
+        await tx.orm.public.Transaction.where({ id: transaction.id }).update({ status: "COMPLETED" });
+        await tx.orm.public.Withdrawal.where({ id: withdrawal.id }).update({ status: "SUCCESS" });
+    });
+}
+
+async function reverseWithdrawal(reference: string, status: "FAILED") {
+    await db.transaction(async (tx) => {
+        const transaction = await tx.orm.public.Transaction.where({ reference }).first();
+        const withdrawal = await tx.orm.public.Withdrawal.where({ reference }).first();
+        if (!transaction || !withdrawal || transaction.status !== "PENDING") return;
+        const wallet = await tx.orm.public.Account.where({ userId: withdrawal.userId, kind: "USER_WALLET" }).first();
+        const holding = await tx.orm.public.Account.where({ kind: "SYSTEM_PAYSTACK_HOLDING" }).first();
+        if (!wallet || !holding) throw new Error("Withdrawal accounts missing for " + reference);
+        const reversal = await tx.orm.public.Transaction.create({
+            reference: `${reference}_reversal`,
+            type: "WITHDRAWAL_REVERSAL",
+            status: "COMPLETED",
+        });
+        await tx.orm.public.LedgerEntry.create({
+            transactionId: reversal.id, accountId: holding.id, amountKobo: -BigInt(withdrawal.amountKobo),
+        });
+        await tx.orm.public.LedgerEntry.create({
+            transactionId: reversal.id, accountId: wallet.id, amountKobo: BigInt(withdrawal.amountKobo),
+        });
+        await tx.orm.public.Transaction.where({ id: transaction.id }).update({ status });
+        await tx.orm.public.Withdrawal.where({ id: withdrawal.id }).update({ status });
+    });
 }
 
 // P2p wallet serviceaddition for wallet to wallet transfers

@@ -6,6 +6,7 @@ import {
   depositStatus,
   startDeposit,
 } from "../services/payment.service.js";
+import { settleWithdrawal } from "../services/wallet.service.js";
 import { getAuthenticatedUserId } from "../middleware/requireAuth.js";
 
 const initSchema = z.object({
@@ -38,6 +39,19 @@ export async function paystackWebhook(req: Request, res: Response) {
   const signature = req.header("x-paystack-signature");
   if (!req.rawBody || !isValidSignature(req.rawBody, signature)) {
     return res.status(401).json({ error: "Invalid signature" });
+  }
+  if (
+    req.body?.event === "transfer.success" ||
+    req.body?.event === "transfer.failed" ||
+    req.body?.event === "transfer.reversed"
+  ) {
+    const reference = req.body.data?.reference;
+    if (typeof reference !== "string") return res.sendStatus(400);
+    await settleWithdrawal(
+      reference,
+      req.body.event === "transfer.success" ? "SUCCESS" : "FAILED",
+    );
+    return res.sendStatus(200);
   }
   await creditFromWebhook(req.body);
   return res.sendStatus(200);

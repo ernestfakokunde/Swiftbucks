@@ -23,6 +23,11 @@ const moneySchema = z.object({
   reference: z.string().min(1).max(100),
 });
 
+const withdrawalSchema = moneySchema.extend({
+  bankCode: z.string().regex(/^\d{3,6}$/),
+  accountNumber: z.string().regex(/^\d{10}$/),
+});
+
 const transferSchema = moneySchema.extend({
   receiverUsername: z.string().min(1),
 });
@@ -69,7 +74,7 @@ export async function depositFunds(req: Request, res: Response) {
 
 export async function withdrawFunds(req: Request, res: Response) {
   const userId = getAuthenticatedUserId(req);
-  const parsed = moneySchema.safeParse(req.body);
+  const parsed = withdrawalSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid input" });
   }
@@ -78,6 +83,7 @@ export async function withdrawFunds(req: Request, res: Response) {
     userId,
     BigInt(parsed.data.amountKobo),
     parsed.data.reference,
+    { bankCode: parsed.data.bankCode, accountNumber: parsed.data.accountNumber },
   );
 
   return res.status(result.duplicate ? 200 : 201).json(result);
