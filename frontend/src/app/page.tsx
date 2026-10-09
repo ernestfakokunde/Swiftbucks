@@ -8,6 +8,7 @@ import { ActivityList } from "@/components/ActivityList";
 import { WalletError } from "@/components/WalletError";
 import { WalletSkeleton } from "@/components/WalletSkeleton";
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 
 export default function Home() {
   const balance = useBalance();
@@ -51,8 +52,20 @@ export default function Home() {
             <ActionButton label="Add money" icon="+" href="/add-money" />
             <ActionButton label="Send" icon="↗" href="/send" />
             <ActionButton label="Withdraw" icon="↓" href="/withdraw" />
-            <ActionButton label="Airtime" icon="▤" disabled note="Soon" />
           </div>
+          <section className="mb-[22px]">
+            <h2 className="mb-3 font-display text-base font-bold">Pay bills</h2>
+            <Link href="/bills/airtime" className="flex min-h-[72px] items-center gap-3 rounded-[20px] border border-line bg-surface p-3 shadow-sm">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-orange/15 text-2xl">☎</span>
+              <span className="min-w-0 flex-1"><strong className="block font-display">Buy airtime</strong><span className="text-xs text-muted">MTN, Airtel, Glo and 9mobile</span></span>
+              <span className="flex gap-1.5" aria-hidden="true">
+                <i className="h-5 w-5 rounded-full bg-[#FFCC00]" /><i className="h-5 w-5 rounded-full bg-[#E40000]" /><i className="h-5 w-5 rounded-full bg-[#50B651]" /><i className="h-5 w-5 rounded-full bg-[#006E53]" />
+              </span><span className="text-xl text-muted">›</span>
+            </Link>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {["Data", "Electricity", "TV"].map((label) => <span key={label} aria-disabled="true" className="rounded-2xl border border-line bg-surface p-3 text-center text-xs text-muted opacity-60">{label}<small className="mt-1 block">Soon</small></span>)}
+            </div>
+          </section>
         </section>
         <section className="md:rounded-2xl md:border md:border-line md:bg-bg md:p-5">
           <h1 className="mb-1 font-display text-base font-bold">Recent activity</h1>

@@ -632,6 +632,9 @@ export async function lookupUser(username: string){
     const withdrawal = transaction.type === "WITHDRAWAL"
         ? await db.orm.public.Withdrawal.where({ transactionId: transaction.id }).first()
         : null;
+    const bill = transaction.type === "BILL_PAYMENT"
+        ? await db.orm.public.BillPurchase.where({ transactionId: transaction.id }).first()
+        : null;
     let title = "Transaction";
 
     if (transaction.type === "DEPOSIT") title = "Added money";
@@ -641,13 +644,16 @@ export async function lookupUser(username: string){
       const name = await otherPartyName(transaction.id, wallet.id);
       title = amount < BigInt(0) ? `Sent to ${name}` : `Received from ${name}`;
     }
+    else if (bill) {
+      title = `${bill.serviceId.toUpperCase()} airtime ${bill.customerRef.slice(0, 4)}***${bill.customerRef.slice(-3)}`;
+    }
 
     items.push({
       id: entry.id,
       title,
       type: transaction.type,
       status: transaction.status,
-      amountKobo: withdrawal ? (-BigInt(withdrawal.amountKobo)).toString() : amount.toString(),
+      amountKobo: withdrawal || bill ? (-BigInt(withdrawal?.amountKobo ?? bill?.amountKobo ?? 0)).toString() : amount.toString(),
       feeKobo: withdrawal ? BigInt(withdrawal.feeKobo).toString() : undefined,
       createdAt: entry.createdAt,
     });

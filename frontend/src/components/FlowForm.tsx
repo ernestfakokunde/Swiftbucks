@@ -20,7 +20,6 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   const router = useRouter();
   const { user } = useAuth();
   const balance = useBalance();
-  const reference = useReference(mode);
   const [step, setStep] = useState<"form" | "confirm" | "done">("form");
   const [submitted, setSubmitted] = useState<Values | null>(null);
   const [amountKobo, setAmountKobo] = useState(0);
@@ -34,6 +33,11 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   const isSend = mode === "send";
   const isAdd = mode === "add";
   const isWithdraw = mode === "withdraw";
+  const accountNumber = watched.accountNumber ?? "";
+  const reference = useReference(
+    mode,
+    [username, amountText, watched.bank ?? "", accountNumber].join("|"),
+  );
   const [debouncedUsername, setDebouncedUsername] = useState("");
   const [debouncedAmountKobo, setDebouncedAmountKobo] = useState<number | null>(null);
   useEffect(() => {
@@ -49,7 +53,6 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
     retry: false,
   });
   const banksQuery = useQuery({ queryKey: ["banks"], queryFn: getBanks, staleTime: 24 * 60 * 60 * 1000, enabled: isWithdraw });
-  const accountNumber = watched.accountNumber ?? "";
   const resolveQuery = useQuery({
     queryKey: ["bank-account", watched.bank, accountNumber],
     queryFn: () => resolveBankAccount(accountNumber, watched.bank ?? ""),
@@ -58,8 +61,8 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   });
 
   useEffect(() => {
-    reference.reset();
-  }, [reference, username, amountText, watched.bank, watched.accountNumber, watched.accountName]);
+    form.resetField("accountName");
+  }, [form, watched.bank, accountNumber]);
 
   useEffect(() => {
     if (!isSend) return;

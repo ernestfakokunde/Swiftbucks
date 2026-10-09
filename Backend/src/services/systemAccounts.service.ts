@@ -5,6 +5,9 @@ const SYSTEM_ACCOUNT_KINDS = [
   "SYSTEM_PAYSTACK_FEES",
   "SYSTEM_PLATFORM_FEES",
   "SYSTEM_PAYOUT_HOLDING",
+  "SYSTEM_BILLS_PENDING",
+  "SYSTEM_VTPASS_FLOAT",
+  "SYSTEM_BILLS_REVENUE",
 ] as const;
 
 export async function seedSystemAccounts() {

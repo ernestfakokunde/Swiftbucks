@@ -26,11 +26,17 @@ export type WithdrawalQuote = { amountKobo: number; feeKobo: number; totalDebitK
 export type ActivityItem = {
   id: number;
   title: string;
-  type: "DEPOSIT" | "WITHDRAWAL" | "WITHDRAWAL_REVERSAL" | "TRANSFER";
+  type: "DEPOSIT" | "WITHDRAWAL" | "WITHDRAWAL_REVERSAL" | "TRANSFER" | "BILL_PAYMENT";
   status: string;
   amountKobo: string;
   feeKobo?: string;
   createdAt: string;
+};
+export type AirtimeNetwork = { id: "mtn" | "glo" | "airtel" | "etisalat"; name: string };
+export type BillPurchase = {
+  id: number; reference: string; category: "AIRTIME"; network: string; phone: string;
+  amountKobo: string; status: "PENDING" | "DELIVERED" | "FAILED" | "REVERSED";
+  failureReason?: string | null; createdAt: string;
 };
 
 export class ApiError extends Error {
@@ -203,4 +209,25 @@ export function getDepositStatus(reference: string) {
 
 export function getTransactions() {
   return request<ActivityItem[]>("/api/wallet/transactions");
+}
+
+export function getAirtimeNetworks() {
+  return request<AirtimeNetwork[]>("/api/bills/airtime/networks");
+}
+
+export function purchaseAirtime(input: {
+  idempotencyKey: string; network: string; phone: string; amountKobo: number;
+}) {
+  return request<BillPurchase>("/api/bills/airtime/purchase", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getBillPurchase(id: number) {
+  return request<BillPurchase>(`/api/bills/purchases/${id}`);
+}
+
+export function getBillPurchases() {
+  return request<BillPurchase[]>("/api/bills/purchases");
 }

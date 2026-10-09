@@ -27,7 +27,7 @@ export function ActivityList({
             <div className="min-w-0 flex-1 text-sm">
               <p className="truncate">
                 {item.title}
-                {item.status ? (
+                {item.status === "PENDING" || item.status === "RESERVED" || item.status === "PROCESSING" ? (
                   <span className="ml-1.5 inline-block rounded-full border border-orange px-2 py-px text-[11px] text-orange">
                     Processing
                   </span>

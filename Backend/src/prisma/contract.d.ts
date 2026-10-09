@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'03a83f41be8fd624fe190b7c4db4edae1df39ef7c5017219dec7ec0c4414d06d'>;
+  StorageHashBase<'95e699c10b2e67c0e6ce1f0040131a078f5f9335eb87f24019c47c6f22f5d1c8'>;
 export type ExecutionHash =
-  ExecutionHashBase<'f2ef870d3c6cb5a9f8daf3a0af99ca1cff437c31e902ce3908a426aea7485c10'>;
+  ExecutionHashBase<'d87241eacfa39b1cc792ec4a6a6bf8a43ca873e4985a6d9c8133731d04b6a92a'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -257,6 +257,24 @@ export type FieldOutputTypes = {
       readonly kind: CodecTypes['pg/text@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'] | null;
     };
+    readonly BillPurchase: {
+      readonly amountKobo: CodecTypes['pg/int8@1']['output'];
+      readonly category: CodecTypes['pg/text@1']['output'];
+      readonly commissionKobo: CodecTypes['pg/int8@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly customerRef: CodecTypes['pg/text@1']['output'];
+      readonly failureReason: CodecTypes['pg/text@1']['output'] | null;
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly idempotencyKey: CodecTypes['pg/text@1']['output'];
+      readonly providerCostKobo: CodecTypes['pg/int8@1']['output'] | null;
+      readonly providerRequestId: CodecTypes['pg/text@1']['output'];
+      readonly providerTxId: CodecTypes['pg/text@1']['output'] | null;
+      readonly serviceId: CodecTypes['pg/text@1']['output'];
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly transactionId: CodecTypes['pg/int4@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['output'];
       readonly amountKobo: CodecTypes['pg/int8@1']['output'];
@@ -328,6 +346,24 @@ export type FieldInputTypes = {
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly kind: CodecTypes['pg/text@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'] | null;
+    };
+    readonly BillPurchase: {
+      readonly amountKobo: CodecTypes['pg/int8@1']['input'];
+      readonly category: CodecTypes['pg/text@1']['input'];
+      readonly commissionKobo: CodecTypes['pg/int8@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly customerRef: CodecTypes['pg/text@1']['input'];
+      readonly failureReason: CodecTypes['pg/text@1']['input'] | null;
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly idempotencyKey: CodecTypes['pg/text@1']['input'];
+      readonly providerCostKobo: CodecTypes['pg/int8@1']['input'] | null;
+      readonly providerRequestId: CodecTypes['pg/text@1']['input'];
+      readonly providerTxId: CodecTypes['pg/text@1']['input'] | null;
+      readonly serviceId: CodecTypes['pg/text@1']['input'];
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly transactionId: CodecTypes['pg/int4@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['input'];
@@ -401,6 +437,24 @@ export type StorageColumnTypes = {
       readonly kind: CodecTypes['pg/text@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'] | null;
     };
+    readonly BillPurchase: {
+      readonly amountKobo: CodecTypes['pg/int8@1']['output'];
+      readonly category: CodecTypes['pg/text@1']['output'];
+      readonly commissionKobo: CodecTypes['pg/int8@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly customerRef: CodecTypes['pg/text@1']['output'];
+      readonly failureReason: CodecTypes['pg/text@1']['output'] | null;
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly idempotencyKey: CodecTypes['pg/text@1']['output'];
+      readonly providerCostKobo: CodecTypes['pg/int8@1']['output'] | null;
+      readonly providerRequestId: CodecTypes['pg/text@1']['output'];
+      readonly providerTxId: CodecTypes['pg/text@1']['output'] | null;
+      readonly serviceId: CodecTypes['pg/text@1']['output'];
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly transactionId: CodecTypes['pg/int4@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['output'];
       readonly amountKobo: CodecTypes['pg/int8@1']['output'];
@@ -472,6 +526,24 @@ export type StorageColumnInputTypes = {
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly kind: CodecTypes['pg/text@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'] | null;
+    };
+    readonly BillPurchase: {
+      readonly amountKobo: CodecTypes['pg/int8@1']['input'];
+      readonly category: CodecTypes['pg/text@1']['input'];
+      readonly commissionKobo: CodecTypes['pg/int8@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly customerRef: CodecTypes['pg/text@1']['input'];
+      readonly failureReason: CodecTypes['pg/text@1']['input'] | null;
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly idempotencyKey: CodecTypes['pg/text@1']['input'];
+      readonly providerCostKobo: CodecTypes['pg/int8@1']['input'] | null;
+      readonly providerRequestId: CodecTypes['pg/text@1']['input'];
+      readonly providerTxId: CodecTypes['pg/text@1']['input'] | null;
+      readonly serviceId: CodecTypes['pg/text@1']['input'];
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly transactionId: CodecTypes['pg/int4@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['input'];
@@ -548,6 +620,27 @@ export namespace Models {
     user: public_User | null;
     readonly [RelationKeys]?: 'entries' | 'user';
   };
+  export type public_BillPurchase = {
+    amountKobo: CodecTypes['pg/int8@1']['output'];
+    category: CodecTypes['pg/text@1']['output'];
+    commissionKobo: CodecTypes['pg/int8@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    customerRef: CodecTypes['pg/text@1']['output'];
+    failureReason: CodecTypes['pg/text@1']['output'] | null;
+    id: CodecTypes['pg/int4@1']['output'];
+    idempotencyKey: CodecTypes['pg/text@1']['output'];
+    providerCostKobo: CodecTypes['pg/int8@1']['output'] | null;
+    providerRequestId: CodecTypes['pg/text@1']['output'];
+    providerTxId: CodecTypes['pg/text@1']['output'] | null;
+    serviceId: CodecTypes['pg/text@1']['output'];
+    status: CodecTypes['pg/text@1']['output'];
+    transactionId: CodecTypes['pg/int4@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'];
+    transaction: public_Transaction;
+    user: public_User;
+    readonly [RelationKeys]?: 'transaction' | 'user';
+  };
   export type public_LedgerEntry = {
     accountId: CodecTypes['pg/int4@1']['output'];
     amountKobo: CodecTypes['pg/int8@1']['output'];
@@ -574,9 +667,10 @@ export namespace Models {
     status: CodecTypes['pg/text@1']['output'];
     type: CodecTypes['pg/text@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    billPurchase: public_BillPurchase | null;
     entries: public_LedgerEntry[];
     withdrawal: public_Withdrawal | null;
-    readonly [RelationKeys]?: 'entries' | 'withdrawal';
+    readonly [RelationKeys]?: 'billPurchase' | 'entries' | 'withdrawal';
   };
   export type public_User = {
     createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -587,9 +681,10 @@ export namespace Models {
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     username: CodecTypes['pg/text@1']['output'];
     accounts: public_Account[];
+    billPurchases: public_BillPurchase[];
     sessions: public_Session[];
     withdrawals: public_Withdrawal[];
-    readonly [RelationKeys]?: 'accounts' | 'sessions' | 'withdrawals';
+    readonly [RelationKeys]?: 'accounts' | 'billPurchases' | 'sessions' | 'withdrawals';
   };
   export type public_Withdrawal = {
     accountLast4: CodecTypes['pg/text@1']['output'] | null;
@@ -631,6 +726,7 @@ export namespace Models {
 export declare const models: {
   public: {
     Account: Models.public_Account;
+    BillPurchase: Models.public_BillPurchase;
     LedgerEntry: Models.public_LedgerEntry;
     Session: Models.public_Session;
     Transaction: Models.public_Transaction;
@@ -715,6 +811,139 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly BillPurchase: {
+              columns: {
+                readonly amountKobo: {
+                  readonly nativeType: 'int8';
+                  readonly codecId: 'pg/int8@1';
+                  readonly nullable: false;
+                };
+                readonly category: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly commissionKobo: {
+                  readonly nativeType: 'int8';
+                  readonly codecId: 'pg/int8@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly customerRef: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly failureReason: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly idempotencyKey: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly providerCostKobo: {
+                  readonly nativeType: 'int8';
+                  readonly codecId: 'pg/int8@1';
+                  readonly nullable: true;
+                };
+                readonly providerRequestId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly providerTxId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly serviceId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'RESERVED'>;
+                  };
+                };
+                readonly transactionId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['providerRequestId'] },
+                { readonly columns: readonly ['transactionId'] },
+                { readonly columns: readonly ['userId', 'idempotencyKey'] },
+              ];
+              indexes: readonly [
+                {
+                  readonly name: 'BillPurchase_userId_idx_a489d58a';
+                  readonly prefix: 'BillPurchase_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'BillPurchase';
+                    readonly columns: readonly ['userId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'BillPurchase';
+                    readonly columns: readonly ['transactionId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Transaction';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -1202,6 +1431,10 @@ type ContractBase = Omit<
   readonly targetFamily: 'sql';
   readonly roots: {
     readonly Account: { readonly namespace: 'public' & NamespaceId; readonly model: 'Account' };
+    readonly BillPurchase: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'BillPurchase';
+    };
     readonly LedgerEntry: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'LedgerEntry';
@@ -1281,6 +1514,125 @@ type ContractBase = Omit<
                 readonly currency: { readonly column: 'currency' };
                 readonly id: { readonly column: 'id' };
                 readonly kind: { readonly column: 'kind' };
+                readonly userId: { readonly column: 'userId' };
+              };
+            };
+          };
+          readonly BillPurchase: {
+            readonly fields: {
+              readonly amountKobo: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int8@1' };
+              };
+              readonly category: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly commissionKobo: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int8@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly customerRef: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly failureReason: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly idempotencyKey: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly providerCostKobo: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int8@1' };
+              };
+              readonly providerRequestId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly providerTxId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly serviceId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly transactionId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+            };
+            readonly relations: {
+              readonly transaction: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Transaction';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['transactionId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'BillPurchase';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly amountKobo: { readonly column: 'amountKobo' };
+                readonly category: { readonly column: 'category' };
+                readonly commissionKobo: { readonly column: 'commissionKobo' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly customerRef: { readonly column: 'customerRef' };
+                readonly failureReason: { readonly column: 'failureReason' };
+                readonly id: { readonly column: 'id' };
+                readonly idempotencyKey: { readonly column: 'idempotencyKey' };
+                readonly providerCostKobo: { readonly column: 'providerCostKobo' };
+                readonly providerRequestId: { readonly column: 'providerRequestId' };
+                readonly providerTxId: { readonly column: 'providerTxId' };
+                readonly serviceId: { readonly column: 'serviceId' };
+                readonly status: { readonly column: 'status' };
+                readonly transactionId: { readonly column: 'transactionId' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly userId: { readonly column: 'userId' };
               };
             };
@@ -1502,6 +1854,18 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly billPurchase: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'BillPurchase';
+                };
+                readonly cardinality: '1:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['transactionId'];
+                };
+              };
               readonly entries: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -1581,6 +1945,17 @@ type ContractBase = Omit<
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
                   readonly model: 'Account';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
+                };
+              };
+              readonly billPurchases: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'BillPurchase';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -1783,6 +2158,15 @@ type ContractBase = Omit<
     readonly executionHash: ExecutionHash;
     readonly mutations: {
       readonly defaults: readonly [
+        {
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
+          readonly onUpdate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'BillPurchase';
+            readonly field: 'updatedAt';
+            readonly namespace: 'public';
+          };
+        },
         {
           readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly onUpdate: { readonly id: 'timestampNow'; readonly kind: 'generator' };

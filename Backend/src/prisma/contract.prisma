@@ -12,6 +12,7 @@ model User {
   accounts  Account[]
   sessions  Session[]
   withdrawals Withdrawal[]
+  billPurchases BillPurchase[]
 }
 
 model Account {
@@ -39,6 +40,7 @@ model Transaction {
 
   entries      LedgerEntry[]
   withdrawal   Withdrawal?
+  billPurchase BillPurchase?
 }
 
 model LedgerEntry {
@@ -109,4 +111,29 @@ model Withdrawal {
   @@index([userId])
   @@index([transferCode])
   @@unique([userId, idempotencyKey])
+}
+
+model BillPurchase {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  idempotencyKey     String
+  providerRequestId  String   @unique
+  category           String
+  serviceId          String
+  customerRef        String
+  amountKobo         BigInt
+  providerCostKobo   BigInt?
+  commissionKobo     BigInt?
+  status             String   @default("RESERVED")
+  failureReason      String?
+  providerTxId       String?
+  transactionId      Int      @unique
+  createdAt          TimestamptzString @default(now())
+  updatedAt          temporal.updatedAtString()
+
+  user               User        @relation(fields: [userId], references: [id])
+  transaction        Transaction  @relation(fields: [transactionId], references: [id])
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId])
 }
