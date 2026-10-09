@@ -2,11 +2,20 @@ import { randomBytes } from "node:crypto";
 import { db } from "../prisma/db.js";
 import { initializePayment } from "../lib/paystack.js";
 import { verifyTransaction } from "../lib/paystack.js";
-import { AppError } from "./wallet.service.js";
+import { AppError } from "../lib/errors.js";
+import { creditKobo, totalDepositFeeKobo } from "../lib/fees.js";
+
+export function depositQuote(amountKobo: number) {
+  const feeKobo = totalDepositFeeKobo(amountKobo);
+  const credit = creditKobo(amountKobo);
+  if (credit < 100) throw new AppError(400, "Amount too small");
+  return { amountKobo, feeKobo, creditKobo: credit };
+}
 
 export async function startDeposit(userId: number, amountKobo: number) {
   const user = await db.orm.public.User.where({ id: userId }).first();
   if (!user) throw new AppError(401, "Not logged in");
+  const quote = depositQuote(amountKobo);
 
   const reference = `dep_${randomBytes(12).toString("hex")}`;
 
@@ -14,6 +23,7 @@ export async function startDeposit(userId: number, amountKobo: number) {
     reference,
     userId,
     amountKobo: BigInt(amountKobo),
+    feeKobo: BigInt(quote.feeKobo),
   });
 
   try {
@@ -23,7 +33,7 @@ export async function startDeposit(userId: number, amountKobo: number) {
       reference,
       callbackUrl: `${process.env.FRONTEND_URL ?? "http://localhost:3000"}/add-money/done`,
     });
-    return { authorizationUrl: data.authorization_url, reference };
+    return { authorizationUrl: data.authorization_url, reference, ...quote };
   } catch (err) {
     console.error("Paystack initialize failed:", err);
     throw new AppError(502, "Could not start the payment. Try again.");
@@ -41,7 +51,12 @@ export async function depositStatus(userId: number, reference: string) {
       if (payment.status === "success") {
         await creditFromWebhook({
           event: "charge.success",
-          data: { reference: payment.reference, amount: payment.amount, fees: payment.fees },
+          data: {
+            reference: payment.reference,
+            amount: payment.amount,
+            currency: payment.currency,
+            fees: payment.fees,
+          },
         });
       }
     } catch (error) {
@@ -49,12 +64,23 @@ export async function depositStatus(userId: number, reference: string) {
     }
   }
   const current = await db.orm.public.paymentIntent.where({ reference }).first();
-  return { status: current?.status ?? intent.status };
+  return {
+    status: current?.status ?? intent.status,
+    creditedKobo:
+      current?.status === "SUCCESS"
+        ? (BigInt(current.amountKobo) - BigInt(current.feeKobo)).toString()
+        : undefined,
+  };
 }
 
 export async function creditFromWebhook(event: {
   event: string;
-  data: { reference: string; amount: number; fees?: number | undefined };
+  data: {
+    reference: string;
+    amount: number;
+    currency: string;
+    fees?: number | undefined;
+  };
 }) {
   if (event.event !== "charge.success") return;
 
@@ -73,11 +99,25 @@ export async function creditFromWebhook(event: {
     const fresh = await tx.orm.public.paymentIntent.where({ id: intent.id }).first();
     if (!fresh || fresh.status !== "PENDING") return;
 
-    if (BigInt(event.data.amount) !== BigInt(fresh.amountKobo)) {
+    if (
+      event.data.currency !== "NGN" ||
+      BigInt(event.data.amount) !== BigInt(fresh.amountKobo)
+    ) {
       await tx.orm.public.paymentIntent.where({ id: fresh.id }).update({
         status: "MISMATCH",
       });
-      console.error("Amount mismatch for", fresh.reference);
+      console.error("Deposit amount or currency mismatch for", fresh.reference);
+      return;
+    }
+    const actualFee = event.data.fees ?? 0;
+    if (event.data.fees === undefined) {
+      console.warn("DEPOSIT_FEE_MISSING", fresh.reference);
+    }
+    if (!Number.isSafeInteger(actualFee) || actualFee < 0 || actualFee > event.data.amount) {
+      await tx.orm.public.paymentIntent.where({ id: fresh.id }).update({
+        status: "MISMATCH",
+      });
+      console.error("Deposit fee mismatch for", fresh.reference);
       return;
     }
 
@@ -87,23 +127,33 @@ export async function creditFromWebhook(event: {
     }).first();
     if (!wallet) throw new Error("Wallet missing for intent " + fresh.reference);
 
-    let holding = await tx.orm.public.Account.where({
+    const holding = await tx.orm.public.Account.where({
       kind: "SYSTEM_PAYSTACK_HOLDING",
     }).first();
-    if (!holding) {
-      holding = await tx.orm.public.Account.create({
-        kind: "SYSTEM_PAYSTACK_HOLDING",
-        currency: "NGN",
-      });
-    }
-    let fees = await tx.orm.public.Account.where({
+    if (!holding) throw new Error("SYSTEM_PAYSTACK_HOLDING account is missing");
+    const fees = await tx.orm.public.Account.where({
       kind: "SYSTEM_PAYSTACK_FEES",
     }).first();
-    if (!fees) {
-      fees = await tx.orm.public.Account.create({
-        kind: "SYSTEM_PAYSTACK_FEES",
-        currency: "NGN",
-      });
+    if (!fees) throw new Error("SYSTEM_PAYSTACK_FEES account is missing");
+    const platformFees = await tx.orm.public.Account.where({
+      kind: "SYSTEM_PLATFORM_FEES",
+    }).first();
+    if (!platformFees) throw new Error("SYSTEM_PLATFORM_FEES account is missing");
+
+    const amount = BigInt(event.data.amount);
+    const paystackFee = BigInt(actualFee);
+    const platformFee = BigInt(fresh.feeKobo);
+    const entries: bigint[] = [
+      -(amount - paystackFee),
+      -paystackFee,
+      amount - platformFee,
+      platformFee,
+    ];
+    if (entries.reduce((sum, value) => sum + value, 0n) !== 0n) {
+      throw new Error(`Deposit ledger does not balance for ${fresh.reference}`);
+    }
+    if (actualFee > Number(fresh.feeKobo)) {
+      console.error("DEPOSIT_FEE_BELOW_COST", fresh.reference, event.data.amount, Number(fresh.feeKobo), actualFee);
     }
 
     const transaction = await tx.orm.public.Transaction.create({
@@ -115,17 +165,22 @@ export async function creditFromWebhook(event: {
     await tx.orm.public.LedgerEntry.create({
       transactionId: transaction.id,
       accountId: holding.id,
-      amountKobo: -BigInt(event.data.amount - (event.data.fees ?? 0)),
+      amountKobo: entries[0]!,
     });
     await tx.orm.public.LedgerEntry.create({
       transactionId: transaction.id,
       accountId: fees.id,
-      amountKobo: -BigInt(event.data.fees ?? 0),
+      amountKobo: entries[1]!,
     });
     await tx.orm.public.LedgerEntry.create({
       transactionId: transaction.id,
       accountId: wallet.id,
-      amountKobo: BigInt(fresh.amountKobo),
+      amountKobo: entries[2]!,
+    });
+    await tx.orm.public.LedgerEntry.create({
+      transactionId: transaction.id,
+      accountId: platformFees.id,
+      amountKobo: entries[3]!,
     });
 
     await tx.orm.public.paymentIntent.where({ id: fresh.id }).update({

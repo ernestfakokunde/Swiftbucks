@@ -34,6 +34,7 @@ export function ActivityList({
                 ) : null}
               </p>
               <p className="mt-0.5 text-xs text-muted">{formatActivityDate(item.createdAt)}</p>
+              {item.feeKobo ? <p className="text-xs text-muted">Fee {formatNaira(item.feeKobo)}</p> : null}
             </div>
             <strong
               className={[

@@ -8,20 +8,28 @@ export type User = {
 };
 
 export type Balance = { balanceKobo: string };
-export type MoneyResult = { transactionId: number; duplicate: boolean };
+export type MoneyResult = { transactionId: number; duplicate: boolean; status?: string };
+export type Bank = { name: string; code: string; active: boolean; currency?: string };
+export type ResolvedBankAccount = { account_name: string; account_number: string; bank_id: number };
 export type UserLookup = { username: string; displayName: string };
 export type DepositInitialization = {
   authorizationUrl: string;
   reference: string;
+  amountKobo: number;
+  feeKobo: number;
+  creditKobo: number;
 };
 export type DepositStatus = "PENDING" | "SUCCESS" | "MISMATCH";
+export type DepositQuote = { amountKobo: number; feeKobo: number; creditKobo: number };
+export type WithdrawalQuote = { amountKobo: number; feeKobo: number; totalDebitKobo: number };
 
 export type ActivityItem = {
   id: number;
   title: string;
-  type: "DEPOSIT" | "WITHDRAWAL" | "TRANSFER";
+  type: "DEPOSIT" | "WITHDRAWAL" | "WITHDRAWAL_REVERSAL" | "TRANSFER";
   status: string;
   amountKobo: string;
+  feeKobo?: string;
   createdAt: string;
 };
 
@@ -33,15 +41,16 @@ export class ApiError extends Error {
 }
 
 function safeNextPath(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  if (!value || !/^\/[^/]/.test(value) || /[\\\u0000-\u001f\u007f]/.test(value) || value.includes("://")) return "/";
   return value;
 }
+export { safeNextPath };
 
 function handleUnauthorized(path: string) {
   if (typeof window === "undefined") return;
   const currentPath = window.location.pathname;
   const isPublicAuthPage = currentPath === "/login" || currentPath === "/signup";
-  const isMeCheck = path === "/auth/me";
+  const isMeCheck = path === "/api/auth/me";
   if (isPublicAuthPage && isMeCheck) return;
   if (isPublicAuthPage) return;
 
@@ -148,11 +157,23 @@ export function withdraw(
   reference: string,
   bankCode: string,
   accountNumber: string,
+  bankName: string,
+  accountName: string,
 ) {
   return request<MoneyResult>("/api/wallet/withdraw", {
     method: "POST",
-    body: JSON.stringify({ amountKobo, reference, bankCode, accountNumber }),
+    body: JSON.stringify({ amountKobo, reference, bankCode, accountNumber, bankName, accountName }),
   });
+}
+
+export function getBanks() {
+  return request<Bank[]>("/api/banks");
+}
+
+export function resolveBankAccount(accountNumber: string, bankCode: string) {
+  return request<ResolvedBankAccount>(
+    `/api/banks/resolve?accountNumber=${encodeURIComponent(accountNumber)}&bankCode=${encodeURIComponent(bankCode)}`,
+  );
 }
 
 export function initializeDeposit(amountKobo: number) {
@@ -162,8 +183,20 @@ export function initializeDeposit(amountKobo: number) {
   });
 }
 
+export function getDepositQuote(amountKobo: number) {
+  return request<DepositQuote>(
+    `/api/wallet/deposit/quote?amountKobo=${encodeURIComponent(String(amountKobo))}`,
+  );
+}
+
+export function getWithdrawalQuote(amountKobo: number) {
+  return request<WithdrawalQuote>(
+    `/api/wallet/withdraw/quote?amountKobo=${encodeURIComponent(String(amountKobo))}`,
+  );
+}
+
 export function getDepositStatus(reference: string) {
-  return request<{ status: DepositStatus }>(
+  return request<{ status: DepositStatus; creditedKobo?: string }>(
     `/api/wallet/deposit/status?reference=${encodeURIComponent(reference)}`,
   );
 }

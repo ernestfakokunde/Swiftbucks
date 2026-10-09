@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Suspense } from "react";
 import { z } from "zod";
-import { ApiError, login } from "@/lib/api";
+import { ApiError, login, safeNextPath } from "@/lib/api";
 import { Button } from "@/components/Button";
 import { AuthShowcase } from "@/components/AuthShowcase";
 
@@ -15,10 +15,6 @@ const schema = z.object({
   email: z.email(),
   password: z.string().min(1),
 });
-
-function nextPath(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
 
 function LoginForm() {
   const router = useRouter();
@@ -29,7 +25,7 @@ function LoginForm() {
     mutationFn: (values: z.infer<typeof schema>) => login(values.email, values.password),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      router.replace(nextPath(search.get("next")));
+      router.replace(safeNextPath(search.get("next")));
     },
   });
 

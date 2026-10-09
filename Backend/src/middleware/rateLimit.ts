@@ -35,3 +35,30 @@ export const walletPostLimiter = rateLimit({
   legacyHeaders: false,
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
+
+export const depositStatusLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.userId ?? req.ip),
+  handler: (_req, res) => res.status(429).json(tooManyRequests.message),
+});
+
+export const bankResolveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.userId ?? req.ip),
+  handler: (_req, res) => res.status(429).json(tooManyRequests.message),
+});
+
+export const quoteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.userId ?? req.ip),
+  handler: (_req, res) => res.status(429).json(tooManyRequests.message),
+});

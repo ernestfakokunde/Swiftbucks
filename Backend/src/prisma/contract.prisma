@@ -73,6 +73,7 @@ model Session {
   reference  String            @unique
   userId     Int
   amountKobo BigInt
+  feeKobo    BigInt   @default(0)
   status     String            @default("PENDING")
   createdAt  TimestamptzString @default(now())
   updatedAt  temporal.updatedAtString()
@@ -88,10 +89,16 @@ model Withdrawal {
   transactionId Int      @unique
   userId        Int
   amountKobo    BigInt
+  feeKobo       BigInt   @default(0)
+  estimatedCostKobo BigInt @default(0)
   bankCode      String
-  accountNumber String
+  accountNumber String?
   recipientCode String?
   transferCode  String?
+  bankName      String?
+  accountLast4  String?
+  accountName   String?
+  idempotencyKey String?
   status        String   @default("PENDING")
   createdAt     TimestamptzString @default(now())
   updatedAt     temporal.updatedAtString()
@@ -101,4 +108,5 @@ model Withdrawal {
 
   @@index([userId])
   @@index([transferCode])
+  @@unique([userId, idempotencyKey])
 }

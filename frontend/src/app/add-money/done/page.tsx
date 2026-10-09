@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { getDepositStatus, ApiError } from "@/lib/api";
 import { LayoutShell } from "@/components/LayoutShell";
 import { Loader } from "@/components/Loader";
 import { Button } from "@/components/Button";
+import { formatNaira } from "@/lib/money";
 
 function DoneContent() {
   const search = useSearchParams();
@@ -15,7 +16,12 @@ function DoneContent() {
   const queryClient = useQueryClient();
   const [hidden, setHidden] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
-  const reference = search.get("reference") ?? search.get("trxref") ?? (typeof window !== "undefined" ? sessionStorage.getItem("swiftbuck-deposit-reference") : null);
+  const timeoutRef = useRef<number | undefined>(undefined);
+  const [storedReference, setStoredReference] = useState<string | null>(null);
+  const reference = search.get("reference") ?? search.get("trxref") ?? storedReference;
+  useEffect(() => {
+    setStoredReference(sessionStorage.getItem("swiftbuck-deposit-reference"));
+  }, []);
   const status = useQuery({
     queryKey: ["deposit-status", reference],
     queryFn: () => getDepositStatus(reference as string),
@@ -25,7 +31,7 @@ function DoneContent() {
       (query.state.data === undefined && query.state.error === null)
         ? 2_000
         : false,
-    retry: false,
+    retry: (failureCount, error) => error instanceof ApiError && error.status === 0 && failureCount < 3,
   });
   useEffect(() => {
     if (status.data?.status === "SUCCESS") {
@@ -40,10 +46,17 @@ function DoneContent() {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
   useEffect(() => {
-    if (!reference || status.data?.status !== undefined) return;
-    const timer = window.setTimeout(() => setTimedOut(true), 60_000);
-    return () => window.clearTimeout(timer);
-  }, [reference, status.data?.status]);
+    timeoutRef.current = window.setTimeout(() => setTimedOut(true), 60_000);
+    return () => {
+      if (timeoutRef.current !== undefined) window.clearTimeout(timeoutRef.current);
+    };
+  }, []);
+  useEffect(() => {
+    if (status.data?.status !== undefined && timeoutRef.current !== undefined) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+  }, [status.data?.status]);
   const message = !reference ? "Payment reference not found." :
     status.error instanceof ApiError && status.error.status === 404 ? "Payment not found." :
     timedOut ? "Still processing. Your balance will update when the payment is confirmed." :
@@ -66,7 +79,7 @@ function DoneContent() {
           {waiting
             ? "We only mark the payment complete after Paystack confirms it."
             : status.data?.status === "SUCCESS"
-              ? "Your balance has been updated."
+              ? `Your balance has been updated${status.data.creditedKobo ? ` by ${formatNaira(status.data.creditedKobo)}` : ""}.`
               : "You can return home while we finish processing this payment."}
         </p>
         <Button className="mt-6" type="button" onClick={() => router.push("/")}>Home</Button>

@@ -30,8 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: logoutRequest,
     onSuccess: () => {
-      queryClient.clear();
       router.push("/login");
+      queryClient.clear();
     },
   });
 

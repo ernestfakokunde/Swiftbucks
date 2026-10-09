@@ -11,6 +11,7 @@ import {
   AppError,
 } from "../services/wallet.service.js";
 import { getAuthenticatedUserId } from "../middleware/requireAuth.js";
+import { withdrawalFeeKobo } from "../lib/fees.js";
 
 const createUserSchema = z.object({
   email: z.email(),
@@ -19,21 +20,25 @@ const createUserSchema = z.object({
 });
 
 const moneySchema = z.object({
-  amountKobo: z.number().int().positive().max(10_000_000_000),
+  amountKobo: z.number().int().safe().positive().max(10_000_000_000),
   reference: z.string().min(1).max(100),
 });
 
 const withdrawalSchema = moneySchema.extend({
+  amountKobo: z.number().int().safe().min(50_000).max(10_000_000_000),
   bankCode: z.string().regex(/^\d{3,6}$/),
   accountNumber: z.string().regex(/^\d{10}$/),
+  bankName: z.string().min(1).max(100),
+  accountName: z.string().min(1).max(200),
 });
 
 const transferSchema = moneySchema.extend({
-  receiverUsername: z.string().min(1),
+  amountKobo: z.number().int().safe().min(100).max(10_000_000_000),
+  receiverUsername: z.string().regex(/^[a-zA-Z0-9_]{3,20}$/),
 });
 
 const lookupUserSchema = z.object({
-  username: z.string().min(1),
+  username: z.string().regex(/^[a-zA-Z0-9_]{3,20}$/),
 });
 
 export async function createUser(req: Request, res: Response) {
@@ -83,10 +88,28 @@ export async function withdrawFunds(req: Request, res: Response) {
     userId,
     BigInt(parsed.data.amountKobo),
     parsed.data.reference,
-    { bankCode: parsed.data.bankCode, accountNumber: parsed.data.accountNumber },
+    {
+      bankCode: parsed.data.bankCode,
+      bankName: parsed.data.bankName,
+      accountNumber: parsed.data.accountNumber,
+      accountName: parsed.data.accountName,
+    },
   );
 
   return res.status(result.duplicate ? 200 : 201).json(result);
+}
+
+export function getWithdrawalQuote(req: Request, res: Response) {
+  const parsed = z.number().int().safe().min(50_000).max(10_000_000_000).safeParse(
+    req.query.amountKobo === undefined ? undefined : Number(req.query.amountKobo),
+  );
+  if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
+  const feeKobo = withdrawalFeeKobo(parsed.data);
+  return res.status(200).json({
+    amountKobo: parsed.data,
+    feeKobo,
+    totalDebitKobo: parsed.data + feeKobo,
+  });
 }
 
 export async function transferFunds(req: Request, res: Response) {

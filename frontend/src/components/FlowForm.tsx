@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { formatNaira, nairaToKobo } from "@/lib/money";
-import { ApiError, initializeDeposit, lookupUser, transfer, withdraw } from "@/lib/api";
+import { ApiError, getBanks, getDepositQuote, getWithdrawalQuote, initializeDeposit, lookupUser, resolveBankAccount, transfer, withdraw, type DepositQuote, type WithdrawalQuote } from "@/lib/api";
 import { useBalance } from "@/hooks/useWallet";
 import { useReference } from "@/hooks/useReference";
 import { FlowConfirm, type SummaryRow } from "./FlowConfirm";
@@ -14,11 +14,7 @@ import { Button } from "./Button";
 import { useAuth } from "@/context/AuthContext";
 
 type FlowMode = "send" | "add" | "withdraw";
-type Values = { username: string; amount: string; bank: string; accountNumber: string };
-const banks = [
-  ["GTBank", "058"], ["Access Bank", "044"], ["Zenith Bank", "057"],
-  ["UBA", "033"], ["First Bank", "011"], ["Opay", "999992"], ["Kuda", "090267"],
-] as const;
+type Values = { username: string; amount: string; bank: string; accountNumber: string; accountName: string };
 
 export function FlowForm({ mode }: { mode: FlowMode }) {
   const router = useRouter();
@@ -29,7 +25,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   const [submitted, setSubmitted] = useState<Values | null>(null);
   const [amountKobo, setAmountKobo] = useState(0);
   const form = useForm<Values>({
-    defaultValues: { username: "", amount: "", bank: banks[0][1], accountNumber: "" },
+    defaultValues: { username: "", amount: "", bank: "", accountNumber: "", accountName: "" },
   });
   const watched = useWatch({ control: form.control });
   const username = (watched.username ?? "").replace(/^@/, "").toLowerCase();
@@ -39,10 +35,31 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   const isAdd = mode === "add";
   const isWithdraw = mode === "withdraw";
   const [debouncedUsername, setDebouncedUsername] = useState("");
+  const [debouncedAmountKobo, setDebouncedAmountKobo] = useState<number | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedAmountKobo(amount ?? null), 350);
+    return () => window.clearTimeout(timer);
+  }, [amount]);
+  const quote = useQuery<DepositQuote | WithdrawalQuote>({
+    queryKey: [isAdd ? "deposit-quote" : "withdrawal-quote", debouncedAmountKobo],
+    queryFn: () => isAdd
+      ? getDepositQuote(debouncedAmountKobo!)
+      : getWithdrawalQuote(debouncedAmountKobo!),
+    enabled: (isAdd || isWithdraw) && debouncedAmountKobo !== null && debouncedAmountKobo >= 50_000,
+    retry: false,
+  });
+  const banksQuery = useQuery({ queryKey: ["banks"], queryFn: getBanks, staleTime: 24 * 60 * 60 * 1000, enabled: isWithdraw });
+  const accountNumber = watched.accountNumber ?? "";
+  const resolveQuery = useQuery({
+    queryKey: ["bank-account", watched.bank, accountNumber],
+    queryFn: () => resolveBankAccount(accountNumber, watched.bank ?? ""),
+    enabled: isWithdraw && /^\d{10}$/.test(accountNumber) && Boolean(watched.bank),
+    retry: false,
+  });
 
   useEffect(() => {
     reference.reset();
-  }, [reference, username, amountText, watched.bank, watched.accountNumber]);
+  }, [reference, username, amountText, watched.bank, watched.accountNumber, watched.accountName]);
 
   useEffect(() => {
     if (!isSend) return;
@@ -64,7 +81,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
     mutationFn: async () => {
       if (amount === null) throw new Error("Enter a valid amount");
       if (isSend) return transfer(username, amount, reference.get());
-      if (isWithdraw) return withdraw(amount, reference.get(), submitted?.bank ?? "", submitted?.accountNumber ?? "");
+      if (isWithdraw) return withdraw(amount, reference.get(), submitted?.bank ?? "", submitted?.accountNumber ?? "", banksQuery.data?.find((bank) => bank.code === submitted?.bank)?.name ?? "", submitted?.accountName ?? "");
       const result = await initializeDeposit(amount);
       const url = new URL(result.authorizationUrl);
       if (url.protocol !== "https:" || (url.hostname !== "paystack.com" && !url.hostname.endsWith(".paystack.com"))) {
@@ -81,6 +98,11 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
       }
     },
   });
+  const quoteData = quote.data;
+  const depositQuoteData = quoteData && "creditKobo" in quoteData ? quoteData : null;
+  const withdrawalQuoteData = quoteData && "totalDebitKobo" in quoteData ? quoteData : null;
+  const quotedTotal = withdrawalQuoteData?.totalDebitKobo ?? null;
+  const quoteReady = quoteData !== undefined && debouncedAmountKobo === amount;
 
   if (step === "confirm" && submitted) {
     const rows: SummaryRow[] = isSend
@@ -92,8 +114,9 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
       : isAdd
         ? [{ label: "Pay with", value: "Card or bank transfer" }, { label: "Powered by", value: "Paystack" }]
         : [
-            { label: "To", value: `${banks.find(([_, code]) => code === submitted.bank)?.[0] ?? "Bank"} · ${submitted.accountNumber}` },
-            { label: "Fee", value: "₦0.00" },
+            { label: "To", value: `${banksQuery.data?.find((bank) => bank.code === submitted.bank)?.name ?? "Bank"} · ${submitted.accountNumber}` },
+            { label: "Account name", value: submitted.accountName },
+            { label: "Fee", value: withdrawalQuoteData ? formatNaira(String(withdrawalQuoteData.feeKobo)) : "—" },
           ];
     return (
       <FlowConfirm
@@ -121,7 +144,10 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
   }
 
   const validRecipient = !isSend || (lookup.data !== undefined && debouncedUsername === username && !ownUsername);
-  const canReview = amount !== null && amount > (isAdd ? 9_999 : 0) && !overBalance && validRecipient;
+  const withdrawalReady = !isWithdraw || (resolveQuery.data !== undefined && watched.accountName === resolveQuery.data.account_name);
+  const canReview = amount !== null && amount >= (isAdd || isWithdraw ? 50_000 : 100) &&
+    !overBalance && (quotedTotal === null || quotedTotal <= Number(balance.data?.balanceKobo ?? "0")) &&
+    validRecipient && withdrawalReady && (!isAdd && !isWithdraw || quoteReady);
   return (
     <form
       className="flex min-h-[560px] flex-col"
@@ -151,9 +177,12 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
         <>
           <p className="mt-4 rounded-xl bg-bg p-3 text-xs text-muted">Transfers are processed securely by Paystack.</p>
           <label htmlFor="bank" className="mt-4 mb-2 text-[13px] text-muted">Bank</label>
-          <select id="bank" {...form.register("bank")} className="rounded-2xl border border-line bg-bg px-4 py-3.5 outline-none focus:border-orange">{banks.map(([name, code]) => <option key={code} value={code}>{name}</option>)}</select>
+          <select id="bank" {...form.register("bank")} className="rounded-2xl border border-line bg-bg px-4 py-3.5 outline-none focus:border-orange"><option value="">Select a bank</option>{banksQuery.data?.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}</select>
           <label htmlFor="accountNumber" className="mt-4 mb-2 text-[13px] text-muted">Account number</label>
           <input id="accountNumber" autoComplete="off" inputMode="numeric" maxLength={10} {...form.register("accountNumber")} className="rounded-2xl border border-line bg-bg px-4 py-3.5 outline-none focus:border-orange" />
+          {resolveQuery.isFetching && <p className="pt-2 text-xs text-muted">Verifying account...</p>}
+          {resolveQuery.data && <label className="mt-3 flex items-center gap-2 text-sm text-muted"><input type="checkbox" {...form.register("accountName", { required: true })} value={resolveQuery.data.account_name} /> I confirm this account belongs to <strong>{resolveQuery.data.account_name}</strong></label>}
+          {resolveQuery.isError && <p className="pt-2 text-xs text-red">Could not verify this account.</p>}
         </>
       )}
       <label htmlFor="amount" className="mt-5 text-[13px] text-muted">Amount</label>
@@ -161,7 +190,42 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
         <span className="font-display text-3xl text-muted">₦</span>
         <input id="amount" inputMode="decimal" {...form.register("amount")} placeholder="0" className="w-full max-w-[230px] bg-transparent text-center font-display text-[50px] font-bold tabular-nums text-orange outline-none" />
       </div>
-      {isAdd && <p className="text-center text-xs text-muted">Minimum amount is ₦100.</p>}
+      {isAdd && <p className="text-center text-xs text-muted">Minimum amount is ₦500.</p>}
+      {isAdd && depositQuoteData && (
+        <p className="text-center text-xs text-muted">
+          {`Fee ${formatNaira(String(depositQuoteData.feeKobo))} · You'll receive ${formatNaira(String(depositQuoteData.creditKobo))}`}
+        </p>
+      )}
+      {isWithdraw && withdrawalQuoteData && (
+        <p className="text-center text-xs text-muted">
+          {`Fee ${formatNaira(String(withdrawalQuoteData.feeKobo))} · Total from wallet ${formatNaira(String(withdrawalQuoteData.totalDebitKobo))}`}
+        </p>
+      )}
+      {isWithdraw && (
+        <button
+          type="button"
+          className="mt-2 text-xs font-semibold text-orange"
+          onClick={async () => {
+            const balanceKobo = Number(balance.data?.balanceKobo ?? "0");
+            let low = 50_000;
+            let high = Math.min(balanceKobo, 10_000_000_000);
+            let best = 0;
+            for (let i = 0; i < 28 && low <= high; i += 1) {
+              const candidate = Math.floor((low + high) / 2);
+              const candidateQuote = await getWithdrawalQuote(candidate);
+              if (candidateQuote.totalDebitKobo <= balanceKobo) {
+                best = candidate;
+                low = candidate + 1;
+              } else {
+                high = candidate - 1;
+              }
+            }
+            if (best > 0) form.setValue("amount", (best / 100).toFixed(2));
+          }}
+        >
+          Withdraw all
+        </button>
+      )}
       <p className="min-h-8 pt-2 text-center text-[13px] text-red" role="alert">
         {overBalance ? `You only have ${formatNaira(balance.data?.balanceKobo ?? "0")} available.` : mutation.error instanceof Error ? mutation.error.message : null}
       </p>

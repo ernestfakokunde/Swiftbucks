@@ -2,6 +2,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const BASE = "https://api.paystack.co";
 
+export class PaystackError extends Error {
+  constructor(
+    message: string,
+    public readonly definite: boolean,
+  ) {
+    super(message);
+    this.name = "PaystackError";
+  }
+}
+
 function secret() {
   const key = process.env.PAYSTACK_SECRET_KEY;
   if (!key) throw new Error("PAYSTACK_SECRET_KEY is not set");
@@ -9,17 +19,35 @@ function secret() {
 }
 
 async function paystackRequest<T>(path: string, body: Record<string, unknown>) {
-  const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json().catch(() => null);
-  if (!res.ok || !json?.status) {
-    throw new Error(`Paystack request failed: ${json?.message ?? res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    throw new PaystackError(
+      `Paystack request failed: ${error instanceof Error ? error.message : "network error"}`,
+      false,
+    );
+  }
+
+  let json: { status?: boolean; message?: string; data?: T } | null;
+  try {
+    json = await res.json() as { status?: boolean; message?: string; data?: T };
+  } catch {
+    throw new PaystackError("Paystack returned an unreadable response", false);
+  }
+  if (res.status >= 500) {
+    throw new PaystackError(`Paystack request failed: ${json.message ?? res.status}`, false);
+  }
+  if (!res.ok || !json.status) {
+    throw new PaystackError(`Paystack request failed: ${json.message ?? res.status}`, true);
   }
   return json.data as T;
 }
@@ -60,9 +88,13 @@ export function initiateTransfer(input: {
   recipientCode: string;
   reference: string;
 }) {
-  return paystackRequest<{ transfer_code: string }>("/transfer", {
+  const amount = Number(input.amountKobo);
+  if (!Number.isSafeInteger(amount)) {
+    throw new PaystackError("Transfer amount is outside the safe integer range", true);
+  }
+  return paystackRequest<{ transfer_code: string; status?: string }>("/transfer", {
     source: "balance",
-    amount: input.amountKobo.toString(),
+    amount,
     recipient: input.recipientCode,
     reference: input.reference,
     reason: "Swiftbuck wallet withdrawal",
@@ -70,14 +102,65 @@ export function initiateTransfer(input: {
 }
 
 export async function verifyTransaction(reference: string) {
-  const res = await fetch(`${BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
-    headers: { Authorization: `Bearer ${secret()}` },
-  });
-  const json = await res.json().catch(() => null);
-  if (!res.ok || !json?.status) {
-    throw new Error(`Paystack verification failed: ${json?.message ?? res.status}`);
+  const data = await paystackGet<{
+    reference: string;
+    amount: number;
+    fees?: number | undefined;
+    currency: string;
+    status: string;
+  }>(`/transaction/verify/${encodeURIComponent(reference)}`);
+  return data;
+}
+
+export async function verifyTransfer(transferCode: string) {
+  return paystackGet<{
+    transfer_code: string;
+    reference: string;
+    amount: number;
+    currency: string;
+    status: string;
+    fees?: number;
+  }>(`/transfer/${encodeURIComponent(transferCode)}`);
+}
+
+export async function listBanks() {
+  return paystackGet<Array<{ name: string; code: string; active: boolean; currency?: string }>>(
+    "/bank?currency=NGN&perPage=100",
+  );
+}
+
+export async function resolveAccount(accountNumber: string, bankCode: string) {
+  return paystackGet<{ account_number: string; account_name: string; bank_id: number }>(
+    `/bank/resolve?account_number=${encodeURIComponent(accountNumber)}&bank_code=${encodeURIComponent(bankCode)}`,
+  );
+}
+
+async function paystackGet<T>(path: string) {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { Authorization: `Bearer ${secret()}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    throw new PaystackError(
+      `Paystack request failed: ${error instanceof Error ? error.message : "network error"}`,
+      false,
+    );
   }
-  return json.data as { reference: string; amount: number; fees?: number; status: string };
+  let json: { status?: boolean; message?: string; data?: T } | null;
+  try {
+    json = await res.json() as { status?: boolean; message?: string; data?: T };
+  } catch {
+    throw new PaystackError("Paystack returned an unreadable response", false);
+  }
+  if (res.status >= 500) {
+    throw new PaystackError(`Paystack request failed: ${json.message ?? res.status}`, false);
+  }
+  if (!res.ok || !json.status) {
+    throw new PaystackError(`Paystack request failed: ${json.message ?? res.status}`, true);
+  }
+  return json.data as T;
 }
 
 export function isValidSignature(rawBody: Buffer, signature: string | undefined) {

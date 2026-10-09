@@ -534,8 +534,22 @@
           },
           "Withdrawal": {
             "fields": {
+              "accountLast4": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "accountName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "accountNumber": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -555,6 +569,13 @@
                   "kind": "scalar"
                 }
               },
+              "bankName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -562,10 +583,31 @@
                   "kind": "scalar"
                 }
               },
+              "estimatedCostKobo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              },
+              "feeKobo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -655,6 +697,12 @@
             },
             "storage": {
               "fields": {
+                "accountLast4": {
+                  "column": "accountLast4"
+                },
+                "accountName": {
+                  "column": "accountName"
+                },
                 "accountNumber": {
                   "column": "accountNumber"
                 },
@@ -664,11 +712,23 @@
                 "bankCode": {
                   "column": "bankCode"
                 },
+                "bankName": {
+                  "column": "bankName"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
+                "estimatedCostKobo": {
+                  "column": "estimatedCostKobo"
+                },
+                "feeKobo": {
+                  "column": "feeKobo"
+                },
                 "id": {
                   "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
                 },
                 "recipientCode": {
                   "column": "recipientCode"
@@ -709,6 +769,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "feeKobo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
                   "kind": "scalar"
                 }
               },
@@ -773,6 +840,9 @@
                 },
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "feeKobo": {
+                  "column": "feeKobo"
                 },
                 "id": {
                   "column": "id"
@@ -1185,10 +1255,20 @@
             },
             "Withdrawal": {
               "columns": {
+                "accountLast4": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "accountName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "accountNumber": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": true
                 },
                 "amountKobo": {
                   "codecId": "pg/int8@1",
@@ -1200,6 +1280,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "bankName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -1207,6 +1292,24 @@
                     "kind": "function"
                   },
                   "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "estimatedCostKobo": {
+                  "codecId": "pg/int8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "0"
+                  },
+                  "nativeType": "int8",
+                  "nullable": false
+                },
+                "feeKobo": {
+                  "codecId": "pg/int8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "0"
+                  },
+                  "nativeType": "int8",
                   "nullable": false
                 },
                 "id": {
@@ -1217,6 +1320,11 @@
                   },
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "recipientCode": {
                   "codecId": "pg/text@1",
@@ -1325,6 +1433,12 @@
                   "columns": [
                     "transactionId"
                   ]
+                },
+                {
+                  "columns": [
+                    "userId",
+                    "idempotencyKey"
+                  ]
                 }
               ]
             },
@@ -1342,6 +1456,15 @@
                     "kind": "function"
                   },
                   "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "feeKobo": {
+                  "codecId": "pg/int8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "0"
+                  },
+                  "nativeType": "int8",
                   "nullable": false
                 },
                 "id": {
@@ -1425,7 +1548,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "666a52f0cd898dd12b4261fe4b8d0b37146ce3c4053c3f566232ce1b46d7caa8"
+    "storageHash": "03a83f41be8fd624fe190b7c4db4edae1df39ef7c5017219dec7ec0c4414d06d"
   },
   "execution": {
     "executionHash": "f2ef870d3c6cb5a9f8daf3a0af99ca1cff437c31e902ce3908a426aea7485c10",
