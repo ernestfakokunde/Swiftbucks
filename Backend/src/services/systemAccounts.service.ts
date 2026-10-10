@@ -23,9 +23,8 @@ export async function seedSystemAccounts() {
     await db.transaction(async (tx) => {
       await tx.query(
         db.raw.sql`CREATE UNIQUE INDEX IF NOT EXISTS "Account_system_kind_unique"
-          ON "Account" ("kind") WHERE "userId" IS NULL;
-          SELECT 1 AS applied`
-          .returnsRow({ applied: "pg/int4@1" })
+          ON "Account" ("kind") WHERE "userId" IS NULL`
+          .affectedCount()
           .build(),
       );
     });

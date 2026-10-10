@@ -34,10 +34,15 @@ export function generateProviderRequestId(now = new Date()): string {
 }
 
 function env(name: string, fallback: string) {
-  return process.env[name] ?? process.env[name.replace("VTPASS", "VTU_PASS")] ?? fallback;
+  const legacyName = name.replace("VTU_PASS", "VTPASS");
+  return process.env[name] ?? process.env[legacyName] ?? fallback;
 }
 
-const baseUrl = () => (process.env.VTPASS_BASE_URL ?? "https://sandbox.vtpass.com").replace(/\/$/, "");
+const baseUrl = () => (
+  process.env.VTU_PASS_BASE_URL
+  ?? process.env.VTPASS_BASE_URL
+  ?? "https://sandbox.vtpass.com"
+).replace(/\/$/, "");
 
 async function callVtpass(path: string, init: RequestInit) {
   const response = await fetch(`${baseUrl()}${path}`, {
@@ -45,10 +50,10 @@ async function callVtpass(path: string, init: RequestInit) {
     signal: init.signal ?? AbortSignal.timeout(20_000),
     headers: {
       "Content-Type": "application/json",
-      "api-key": env("VTPASS_API_KEY", ""),
+      "api-key": env("VTU_PASS_API_KEY", ""),
       ...(init.method === "GET"
-        ? { "public-key": env("VTPASS_PUBLIC_KEY", "") }
-        : { "secret-key": env("VTPASS_SECRET_KEY", "") }),
+        ? { "public-key": env("VTU_PASS_PUBLIC_KEY", "") }
+        : { "secret-key": env("VTU_PASS_SECRET_KEY", "") }),
       ...init.headers,
     },
   });
