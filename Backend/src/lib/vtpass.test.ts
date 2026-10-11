@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyVtpassResponse, generateProviderRequestId } from "./vtpass.js";
+import { classifyVtpassResponse, generateProviderRequestId, vtpassResponseDetails } from "./vtpass.js";
 
 describe("VTpass response classification", () => {
   it("classifies every documented definite failure code", () => {
@@ -26,5 +26,19 @@ describe("VTpass request IDs", () => {
     expect(before.slice(0, 12)).toBe("202601012359");
     expect(after.slice(0, 12)).toBe("202601020001");
     expect(before).toMatch(/^\d{12}[a-f0-9]{16}$/);
+  });
+});
+
+describe("VTpass response details", () => {
+  it("preserves the provider code, final status, and description for failure diagnostics", () => {
+    expect(vtpassResponseDetails({
+      code: "016",
+      response_description: "TRANSACTION FAILED",
+      content: { transactions: { status: "failed" } },
+    })).toMatchObject({
+      code: "016",
+      status: "failed",
+      responseDescription: "TRANSACTION FAILED",
+    });
   });
 });

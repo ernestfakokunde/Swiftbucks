@@ -44,8 +44,9 @@ export function generateProviderRequestId(now = new Date()): string {
 }
 
 function env(name: string, fallback: string) {
+  const primaryName = name.replace("VTU_PASS", "VTPASS");
   const legacyName = name.replace("VTPASS", "VTU_PASS");
-  return process.env[name] ?? process.env[legacyName] ?? fallback;
+  return process.env[primaryName] ?? process.env[name] ?? process.env[legacyName] ?? fallback;
 }
 
 const baseUrl = () => (
@@ -55,9 +56,13 @@ const baseUrl = () => (
 ).replace(/\/$/, "");
 
 async function callVtpass(path: string, init: RequestInit) {
+  const configuredTimeout = Number(process.env.VTPASS_TIMEOUT_MS ?? 45_000);
+  const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout >= 5_000
+    ? Math.min(configuredTimeout, 100_000)
+    : 45_000;
   const response = await fetch(`${baseUrl()}${path}`, {
     ...init,
-    signal: init.signal ?? AbortSignal.timeout(20_000),
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
     headers: {
       "Content-Type": "application/json",
       "api-key": env("VTU_PASS_API_KEY", ""),
@@ -95,7 +100,8 @@ export function vtpassResponseDetails(body: unknown) {
     ? transactions.amount : typeof root.amount === "number" || typeof root.amount === "string" ? root.amount : undefined;
   const unitPrice = typeof transactions.unit_price === "number" || typeof transactions.unit_price === "string"
     ? transactions.unit_price : undefined;
-  return { code, status, total, amount, unitPrice, commission: commission ?? detailedCommission, transactionId };
+  const responseDescription = typeof root.response_description === "string" ? root.response_description : undefined;
+  return { code, status, total, amount, unitPrice, commission: commission ?? detailedCommission, transactionId, responseDescription };
 }
 
 export function purchaseAirtime(input: { requestId: string; serviceId: string; amountNaira: number; phone: string }) {

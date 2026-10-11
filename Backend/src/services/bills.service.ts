@@ -169,6 +169,19 @@ export async function reversePurchase(id: number, reason: string) {
 async function applyOutcome(id: number, body: unknown): Promise<BillOutcome> {
   const details = vtpassResponseDetails(body);
   const outcome = classifyVtpassResponse(details.code, details.status);
+  if (outcome === "FAILED" || outcome === "REVERSED") {
+    const purchase = await db.orm.public.BillPurchase.where({ id }).first();
+    console.error("BILL_PROVIDER_FINAL_FAILURE", JSON.stringify({
+      requestId: purchase?.providerRequestId,
+      category: purchase?.category,
+      serviceId: purchase?.serviceId,
+      variationCode: purchase?.variationCode,
+      providerCode: details.code,
+      providerStatus: details.status,
+      providerDescription: details.responseDescription,
+      outcome,
+    }));
+  }
   if (["018", "023", "027", "028", "087"].includes(details.code ?? "")) console.error("BILLS_CONFIG_ALERT", details.code);
   const purchase = await db.orm.public.BillPurchase.where({ id }).first();
   if (details.code === "010" && purchase?.category === "DATA") clearDataPlansCache(purchase.serviceId);
@@ -195,7 +208,13 @@ export async function purchaseBill(userId: number, input: ReservationInput) {
   try {
     body = await vtpassProvider.buy({ requestId: reserved.purchase.providerRequestId, serviceId: reserved.purchase.serviceId, amountNaira: input.amountKobo / 100, phone: input.phone, ...(reserved.purchase.variationCode ? { variationCode: reserved.purchase.variationCode } : {}) });
   } catch (error) {
-    console.error("BILL_OUTCOME_UNKNOWN", reserved.purchase.providerRequestId, error instanceof Error ? error.message : "provider error");
+    console.error("BILL_OUTCOME_UNKNOWN", JSON.stringify({
+      requestId: reserved.purchase.providerRequestId,
+      category: reserved.purchase.category,
+      serviceId: reserved.purchase.serviceId,
+      variationCode: reserved.purchase.variationCode,
+      error: error instanceof Error ? error.message : "provider error",
+    }));
     return { purchase: serializePurchase(await db.orm.public.BillPurchase.where({ id: reserved.purchase.id }).first() ?? reserved.purchase), statusCode: 202 };
   }
   const outcome = await applyOutcome(reserved.purchase.id, body);
@@ -232,7 +251,16 @@ export async function requeryPurchase(id: number) {
     }
     return await applyOutcome(id, response);
   }
-  catch (error) { console.error("BILL_OUTCOME_UNKNOWN", purchase.providerRequestId, error instanceof Error ? error.message : "requery error"); return "PENDING"; }
+  catch (error) {
+    console.error("BILL_REQUERY_UNKNOWN", JSON.stringify({
+      requestId: purchase.providerRequestId,
+      category: purchase.category,
+      serviceId: purchase.serviceId,
+      variationCode: purchase.variationCode,
+      error: error instanceof Error ? error.message : "requery error",
+    }));
+    return "PENDING";
+  }
 }
 
 export async function reconcileBills() {

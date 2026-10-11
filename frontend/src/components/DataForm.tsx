@@ -104,35 +104,59 @@ export function DataForm() {
   if (resolvedStep === "failed" && finalPurchase) return <FlowResult amountKobo={Number(finalPurchase.amountKobo)} line={finalPurchase.status === "REVERSED" ? "Your money was returned to your wallet." : "The purchase could not be completed. Check Activity for the latest status."} onDone={() => router.push("/")} status={finalPurchase.status === "REVERSED" ? "Reversed" : "Failed"} />;
 
   const canContinue = Boolean(network && validNigerianPhone(phone) && selectedPlan && selectedAmount !== undefined && !overBalance);
-  return <div className="flex flex-1 flex-col">
-    <button type="button" onClick={() => router.push("/")} aria-label="Back to home" className="grid h-11 w-11 place-items-center rounded-full border border-deep-soft bg-deep-soft text-lg text-white">←</button>
-    <h1 className="mt-4 font-display text-xl font-bold">Buy data</h1>
-    <p className="mt-1 text-[13px] text-muted">Available {formatNaira(balance.data?.balanceKobo ?? "0")}</p>
-    <label className="mt-5 text-[13px] text-muted">Network</label>
-    {networks.isError ? <div className="mt-2 text-sm text-red" role="alert">Could not load networks. <button type="button" className="underline" onClick={() => void networks.refetch()}>Retry</button></div> : <NetworkPicker networks={networks.data ?? []} value={network} onChange={(value) => { setNetwork(value); setPlanId(""); setPriceChange(null); setLocalError(""); }} storageKey="swiftbuck-last-data-network" />}
-    {!networks.isLoading && !networks.isError && networks.data?.length === 0 ? <p className="mt-3 text-sm text-muted" role="status">Data bundles are not currently available from VTpass.</p> : null}
-    <PhoneField id="data-phone" value={phone} onChange={setPhone} />
-    <h2 className="mt-5 text-[13px] text-muted">Choose a plan</h2>
-    {plansQuery.isLoading ? <div className="mt-2 space-y-2" aria-label="Loading data plans">{Array.from({ length: 5 }, (_, index) => <div key={index} className="h-14 animate-pulse rounded-2xl bg-line" />)}</div> : null}
-    {plansQuery.isError ? <div className="mt-3 rounded-2xl bg-bg p-4 text-sm" role="alert">We couldn’t load plans for this network. <button type="button" className="ml-1 font-semibold text-orange underline" onClick={() => void plansQuery.refetch()}>Retry</button></div> : null}
-    {localError && step === "form" ? <p className="mt-2 text-sm text-orange" role="alert">{localError}</p> : null}
-    {!plansQuery.isLoading && !plansQuery.isError && plans.length ? <>
-      <div role="tablist" aria-label="Plan validity" className="mt-3 flex gap-1 overflow-x-auto rounded-xl bg-bg p-1">{tabs.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={bucket === key} onClick={() => setBucket(key)} className={`min-h-10 shrink-0 rounded-lg px-3 text-xs font-medium ${bucket === key ? "bg-surface text-orange shadow-sm" : "text-muted"}`}>{label}</button>)}</div>
-      <input value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search data plans" placeholder="Search plans" className="mt-3 min-h-11 rounded-xl border border-line bg-bg px-3 text-sm outline-none focus:border-orange" />
-      <div className="mt-3 space-y-4">
-        {([ ["Standard bundles", standard], ["SME bundles", sme] ] as const).map(([heading, group]) => group.length ? <section key={heading} aria-label={heading}>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{heading}</h3>
-          <div role="radiogroup" aria-label={heading} className="space-y-1">{group.map((plan) => <button key={plan.planId} type="button" role="radio" aria-checked={planId === plan.planId} onClick={() => { setPlanId(plan.planId); setLocalError(""); }} className={`flex min-h-14 w-full items-center gap-3 rounded-xl border px-3 py-2 text-left ${planId === plan.planId ? "border-orange bg-orange/5" : "border-line bg-surface"}`}>
-            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${planId === plan.planId ? "border-orange bg-orange text-white" : "border-muted"}`}>{planId === plan.planId ? "✓" : ""}</span>
-            <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{plan.sizeLabel ?? plan.name}</span><span className="mt-0.5 block truncate text-xs text-muted">{plan.validityLabel ?? plan.name}{plan.kind === "SME" ? <span className="ml-2 rounded-full bg-deep/10 px-2 py-0.5 text-[10px] font-semibold text-deep">SME</span> : null}</span></span>
-            <strong className="shrink-0 font-display text-sm tabular-nums">{formatNaira(priceFor(plan))}</strong>
-          </button>)}</div>
-        </section> : null)}
-        {!visible.length ? <p className="py-5 text-center text-sm text-muted">No plans match your search.</p> : null}
+  return <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col">
+    <header className="mb-5 flex items-center gap-3 sm:mb-7">
+      <button type="button" onClick={() => router.push("/")} aria-label="Back to home" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-deep text-lg text-white transition-colors hover:bg-deep-soft">←</button>
+      <div className="min-w-0 flex-1">
+        <h1 className="font-display text-xl font-bold sm:text-2xl">Buy data</h1>
+        <p className="mt-0.5 text-xs text-muted">Choose a bundle and send it instantly.</p>
       </div>
-    </> : null}
-    {overBalance ? <p className="mt-3 text-xs text-red" role="alert">You don’t have enough balance for this plan.</p> : null}
-    {selectedAmount !== undefined ? <p className="mt-3 text-center text-sm text-muted">You pay <strong className="text-text">{formatNaira(selectedAmount)}</strong></p> : null}
-    <div className="mt-auto pt-5"><Button type="button" disabled={!canContinue} onClick={() => setStep("confirm")}>Continue</Button></div>
+      <div className="shrink-0 rounded-xl bg-surface px-3 py-2 text-right shadow-sm sm:px-4">
+        <span className="block text-[10px] text-muted sm:text-xs">Available balance</span>
+        <strong className="font-display text-xs tabular-nums sm:text-sm">{formatNaira(balance.data?.balanceKobo ?? "0")}</strong>
+      </div>
+    </header>
+
+    <div className="grid flex-1 content-start gap-4 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.5fr)] lg:gap-6">
+      <section className="h-fit rounded-[22px] border border-line bg-surface p-4 shadow-sm sm:p-5">
+        <h2 className="mb-4 font-display text-sm font-bold">Recipient</h2>
+        <label className="text-xs text-muted">Network</label>
+        {networks.isError ? <div className="mt-2 text-sm text-red" role="alert">Could not load networks. <button type="button" className="underline" onClick={() => void networks.refetch()}>Retry</button></div> : <NetworkPicker networks={networks.data ?? []} value={network} onChange={(value) => { setNetwork(value); setPlanId(""); setPriceChange(null); setLocalError(""); }} storageKey="swiftbuck-last-data-network" />}
+        {!networks.isLoading && !networks.isError && networks.data?.length === 0 ? <p className="mt-3 text-sm text-muted" role="status">Data bundles are not currently available from VTpass.</p> : null}
+        <PhoneField id="data-phone" value={phone} onChange={setPhone} />
+        <div className="mt-5 rounded-xl bg-bg p-3 text-xs leading-5 text-muted">Data plans are loaded directly from the available VTpass services. Standard and SME plans are shown separately.</div>
+        {overBalance ? <p className="mt-3 text-xs text-red" role="alert">You don’t have enough balance for this plan.</p> : null}
+        {localError && step === "form" ? <p className="mt-3 text-sm text-orange" role="alert">{localError}</p> : null}
+        {selectedAmount !== undefined ? <div className="mt-4 flex items-center justify-between rounded-xl border border-line px-3 py-3 text-sm"><span className="text-muted">You pay</span><strong className="font-display tabular-nums">{formatNaira(selectedAmount)}</strong></div> : null}
+      </section>
+
+      <section className="min-w-0 rounded-[22px] border border-line bg-surface p-4 shadow-sm sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div><h2 className="font-display text-sm font-bold">Choose a bundle</h2><p className="mt-1 text-xs text-muted">Tap a card to select your plan.</p></div>
+          <span className="shrink-0 rounded-full bg-bg px-3 py-1 text-[11px] font-medium text-muted">{visible.length} plans</span>
+        </div>
+        {plansQuery.isLoading ? <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <div key={index} className="h-[92px] animate-pulse rounded-2xl bg-bg" />)}</div> : null}
+        {plansQuery.isError ? <div className="mt-3 rounded-2xl bg-bg p-4 text-sm" role="alert">We couldn’t load plans for this network. <button type="button" className="ml-1 font-semibold text-orange underline" onClick={() => void plansQuery.refetch()}>Retry</button></div> : null}
+        {!plansQuery.isLoading && !plansQuery.isError && plans.length ? <>
+          <div role="tablist" aria-label="Plan validity" className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-bg p-1">{tabs.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={bucket === key} onClick={() => setBucket(key)} className={`min-h-9 shrink-0 rounded-lg px-3 text-xs font-medium transition-colors ${bucket === key ? "bg-surface text-orange shadow-sm" : "text-muted hover:text-text"}`}>{label}</button>)}</div>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search data plans" placeholder="Search by bundle size or validity" className="mt-2 min-h-10 w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none focus:border-orange" />
+          <div className="mt-3 max-h-[min(52vh,540px)] space-y-4 overflow-y-auto overscroll-contain pr-1">
+            {([ ["Standard", standard], ["SME", sme] ] as const).map(([heading, group]) => group.length ? <section key={heading} aria-label={`${heading} bundles`}>
+              <div className="mb-2 flex items-center justify-between"><h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{heading} bundles</h3><span className="text-[10px] text-muted">{group.length} plans</span></div>
+              <div role="radiogroup" aria-label={`${heading} bundles`} className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">{group.map((plan) => <button key={plan.planId} type="button" role="radio" aria-checked={planId === plan.planId} onClick={() => { setPlanId(plan.planId); setLocalError(""); }} className={`relative flex min-h-[88px] flex-col items-start justify-between rounded-2xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm ${planId === plan.planId ? "border-orange bg-orange/5 ring-1 ring-orange/30" : "border-line bg-white hover:border-orange/40"}`}>
+                <span className="block w-full truncate pr-4 font-display text-sm font-bold">{plan.sizeLabel ?? plan.name}</span>
+                <span className="block w-full truncate text-[11px] text-muted">{plan.validityLabel ?? plan.name}</span>
+                <strong className="font-display text-sm tabular-nums">{formatNaira(priceFor(plan))}</strong>
+                {planId === plan.planId ? <span aria-hidden="true" className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-orange text-[10px] font-bold text-white">✓</span> : null}
+              </button>)}</div>
+            </section> : null)}
+            {!visible.length ? <p className="py-8 text-center text-sm text-muted">No plans match your search.</p> : null}
+          </div>
+        </> : null}
+      </section>
+    </div>
+    <div className="mx-auto mt-4 w-full max-w-[440px] lg:ml-auto lg:mr-0 lg:max-w-[300px]">
+      <Button type="button" disabled={!canContinue} onClick={() => setStep("confirm")}>Continue</Button>
+    </div>
   </div>;
 }
