@@ -123,7 +123,7 @@ export function DataForm() {
         <label className="text-xs text-muted">Network</label>
         {networks.isError ? <div className="mt-2 text-sm text-red" role="alert">Could not load networks. <button type="button" className="underline" onClick={() => void networks.refetch()}>Retry</button></div> : <NetworkPicker networks={networks.data ?? []} value={network} onChange={(value) => { setNetwork(value); setPlanId(""); setPriceChange(null); setLocalError(""); }} storageKey="swiftbuck-last-data-network" />}
         {!networks.isLoading && !networks.isError && networks.data?.length === 0 ? <p className="mt-3 text-sm text-muted" role="status">Data bundles are not currently available from VTpass.</p> : null}
-        <PhoneField id="data-phone" value={phone} onChange={setPhone} />
+        <PhoneField id="data-phone" value={phone} onChange={setPhone} compact />
         <div className="mt-5 rounded-xl bg-bg p-3 text-xs leading-5 text-muted">Data plans are loaded directly from the available VTpass services. Standard and SME plans are shown separately.</div>
         {overBalance ? <p className="mt-3 text-xs text-red" role="alert">You don’t have enough balance for this plan.</p> : null}
         {localError && step === "form" ? <p className="mt-3 text-sm text-orange" role="alert">{localError}</p> : null}
