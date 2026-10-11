@@ -9,7 +9,7 @@ type FlowResultProps = {
   line: string;
   onDone: () => void;
   invite?: boolean;
-  status?: "Completed" | "Processing";
+  status?: "Completed" | "Processing" | "Failed" | "Reversed";
 };
 
 export function FlowResult({ amountKobo, line, onDone, invite, status }: FlowResultProps) {

@@ -2,6 +2,16 @@ import { randomBytes } from "node:crypto";
 
 export type BillOutcome = "DELIVERED" | "FAILED" | "PENDING" | "REVERSED";
 
+export type VtpassService = { serviceID: string; name: string };
+export type VtpassPlan = { variation_code: string; name: string; variation_amount: string; fixedPrice: string };
+export interface BillProvider {
+  listServices(identifier: string): Promise<VtpassService[]>;
+  listPlans(serviceId: string): Promise<unknown>;
+  buy(input: { requestId: string; serviceId: string; amountNaira: number; phone: string; variationCode?: string }): Promise<unknown>;
+  requery(requestId: string): Promise<unknown>;
+  balance(): Promise<unknown>;
+}
+
 const failedCodes = new Set([
   "016", "091", "010", "011", "012", "013", "017", "018", "019", "021",
   "022", "023", "024", "027", "028", "030", "034", "035", "085", "087",
@@ -34,13 +44,13 @@ export function generateProviderRequestId(now = new Date()): string {
 }
 
 function env(name: string, fallback: string) {
-  const legacyName = name.replace("VTU_PASS", "VTPASS");
+  const legacyName = name.replace("VTPASS", "VTU_PASS");
   return process.env[name] ?? process.env[legacyName] ?? fallback;
 }
 
 const baseUrl = () => (
-  process.env.VTU_PASS_BASE_URL
-  ?? process.env.VTPASS_BASE_URL
+  process.env.VTPASS_BASE_URL
+  ?? process.env.VTU_PASS_BASE_URL
   ?? "https://sandbox.vtpass.com"
 ).replace(/\/$/, "");
 
@@ -81,19 +91,40 @@ export function vtpassResponseDetails(body: unknown) {
   const commissionDetails = transactions.commission_details && typeof transactions.commission_details === "object"
     ? transactions.commission_details as Record<string, unknown> : {};
   const detailedCommission = typeof commissionDetails.amount === "number" ? commissionDetails.amount : undefined;
-  return { code, status, total, commission: commission ?? detailedCommission, transactionId };
+  const amount = typeof transactions.amount === "number" || typeof transactions.amount === "string"
+    ? transactions.amount : typeof root.amount === "number" || typeof root.amount === "string" ? root.amount : undefined;
+  const unitPrice = typeof transactions.unit_price === "number" || typeof transactions.unit_price === "string"
+    ? transactions.unit_price : undefined;
+  return { code, status, total, amount, unitPrice, commission: commission ?? detailedCommission, transactionId };
 }
 
 export function purchaseAirtime(input: { requestId: string; serviceId: string; amountNaira: number; phone: string }) {
+  return buyVtpass(input);
+}
+
+export function buyVtpass(input: { requestId: string; serviceId: string; amountNaira: number; phone: string; variationCode?: string }) {
   return callVtpass("/api/pay", {
     method: "POST",
     body: JSON.stringify({
       request_id: input.requestId,
       serviceID: input.serviceId,
+      ...(input.variationCode ? { billersCode: input.phone, variation_code: input.variationCode } : {}),
       amount: input.amountNaira,
       phone: input.phone,
     }),
   });
+}
+
+export async function listVtpassServices(identifier: string): Promise<VtpassService[]> {
+  const result = await callVtpass(`/api/services?identifier=${encodeURIComponent(identifier)}`, { method: "GET" });
+  const root = result && typeof result === "object" ? result as { content?: unknown } : {};
+  return Array.isArray(root.content) ? root.content.filter((item): item is VtpassService =>
+    Boolean(item && typeof item === "object" && typeof (item as VtpassService).serviceID === "string" && typeof (item as VtpassService).name === "string"),
+  ) : [];
+}
+
+export function listVtpassPlans(serviceId: string) {
+  return callVtpass(`/api/service-variations?serviceID=${encodeURIComponent(serviceId)}`, { method: "GET" });
 }
 
 export function requeryVtpass(requestId: string) {
@@ -106,3 +137,11 @@ export function requeryVtpass(requestId: string) {
 export function getVtpassBalance() {
   return callVtpass("/api/balance", { method: "GET" });
 }
+
+export const vtpassProvider: BillProvider = {
+  listServices: listVtpassServices,
+  listPlans: listVtpassPlans,
+  buy: buyVtpass,
+  requery: requeryVtpass,
+  balance: getVtpassBalance,
+};

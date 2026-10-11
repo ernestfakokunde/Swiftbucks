@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'95e699c10b2e67c0e6ce1f0040131a078f5f9335eb87f24019c47c6f22f5d1c8'>;
+  StorageHashBase<'957f4f297a2bc71e5afb999768ed5b2a9c435c98739602c0d6f79a7aa4285a09'>;
 export type ExecutionHash =
   ExecutionHashBase<'d87241eacfa39b1cc792ec4a6a6bf8a43ca873e4985a6d9c8133731d04b6a92a'>;
 export type ProfileHash =
@@ -266,6 +266,8 @@ export type FieldOutputTypes = {
       readonly failureReason: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly idempotencyKey: CodecTypes['pg/text@1']['output'];
+      readonly planKind: CodecTypes['pg/text@1']['output'] | null;
+      readonly planName: CodecTypes['pg/text@1']['output'] | null;
       readonly providerCostKobo: CodecTypes['pg/int8@1']['output'] | null;
       readonly providerRequestId: CodecTypes['pg/text@1']['output'];
       readonly providerTxId: CodecTypes['pg/text@1']['output'] | null;
@@ -274,6 +276,7 @@ export type FieldOutputTypes = {
       readonly transactionId: CodecTypes['pg/int4@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly variationCode: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['output'];
@@ -356,6 +359,8 @@ export type FieldInputTypes = {
       readonly failureReason: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly idempotencyKey: CodecTypes['pg/text@1']['input'];
+      readonly planKind: CodecTypes['pg/text@1']['input'] | null;
+      readonly planName: CodecTypes['pg/text@1']['input'] | null;
       readonly providerCostKobo: CodecTypes['pg/int8@1']['input'] | null;
       readonly providerRequestId: CodecTypes['pg/text@1']['input'];
       readonly providerTxId: CodecTypes['pg/text@1']['input'] | null;
@@ -364,6 +369,7 @@ export type FieldInputTypes = {
       readonly transactionId: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly variationCode: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['input'];
@@ -446,6 +452,8 @@ export type StorageColumnTypes = {
       readonly failureReason: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly idempotencyKey: CodecTypes['pg/text@1']['output'];
+      readonly planKind: CodecTypes['pg/text@1']['output'] | null;
+      readonly planName: CodecTypes['pg/text@1']['output'] | null;
       readonly providerCostKobo: CodecTypes['pg/int8@1']['output'] | null;
       readonly providerRequestId: CodecTypes['pg/text@1']['output'];
       readonly providerTxId: CodecTypes['pg/text@1']['output'] | null;
@@ -454,6 +462,7 @@ export type StorageColumnTypes = {
       readonly transactionId: CodecTypes['pg/int4@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly variationCode: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['output'];
@@ -536,6 +545,8 @@ export type StorageColumnInputTypes = {
       readonly failureReason: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly idempotencyKey: CodecTypes['pg/text@1']['input'];
+      readonly planKind: CodecTypes['pg/text@1']['input'] | null;
+      readonly planName: CodecTypes['pg/text@1']['input'] | null;
       readonly providerCostKobo: CodecTypes['pg/int8@1']['input'] | null;
       readonly providerRequestId: CodecTypes['pg/text@1']['input'];
       readonly providerTxId: CodecTypes['pg/text@1']['input'] | null;
@@ -544,6 +555,7 @@ export type StorageColumnInputTypes = {
       readonly transactionId: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly variationCode: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['input'];
@@ -629,6 +641,8 @@ export namespace Models {
     failureReason: CodecTypes['pg/text@1']['output'] | null;
     id: CodecTypes['pg/int4@1']['output'];
     idempotencyKey: CodecTypes['pg/text@1']['output'];
+    planKind: CodecTypes['pg/text@1']['output'] | null;
+    planName: CodecTypes['pg/text@1']['output'] | null;
     providerCostKobo: CodecTypes['pg/int8@1']['output'] | null;
     providerRequestId: CodecTypes['pg/text@1']['output'];
     providerTxId: CodecTypes['pg/text@1']['output'] | null;
@@ -637,6 +651,7 @@ export namespace Models {
     transactionId: CodecTypes['pg/int4@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     userId: CodecTypes['pg/int4@1']['output'];
+    variationCode: CodecTypes['pg/text@1']['output'] | null;
     transaction: public_Transaction;
     user: public_User;
     readonly [RelationKeys]?: 'transaction' | 'user';
@@ -863,6 +878,16 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
+                readonly planKind: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly planName: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
                 readonly providerCostKobo: {
                   readonly nativeType: 'int8';
                   readonly codecId: 'pg/int8@1';
@@ -906,6 +931,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
                   readonly nullable: false;
+                };
+                readonly variationCode: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
@@ -1555,6 +1585,14 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly planKind: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly planName: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly providerCostKobo: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int8@1' };
@@ -1589,6 +1627,10 @@ type ContractBase = Omit<
               readonly userId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly variationCode: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
             };
             readonly relations: {
@@ -1626,6 +1668,8 @@ type ContractBase = Omit<
                 readonly failureReason: { readonly column: 'failureReason' };
                 readonly id: { readonly column: 'id' };
                 readonly idempotencyKey: { readonly column: 'idempotencyKey' };
+                readonly planKind: { readonly column: 'planKind' };
+                readonly planName: { readonly column: 'planName' };
                 readonly providerCostKobo: { readonly column: 'providerCostKobo' };
                 readonly providerRequestId: { readonly column: 'providerRequestId' };
                 readonly providerTxId: { readonly column: 'providerTxId' };
@@ -1634,6 +1678,7 @@ type ContractBase = Omit<
                 readonly transactionId: { readonly column: 'transactionId' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly userId: { readonly column: 'userId' };
+                readonly variationCode: { readonly column: 'variationCode' };
               };
             };
           };

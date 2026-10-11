@@ -26,7 +26,7 @@ export type WithdrawalQuote = { amountKobo: number; feeKobo: number; totalDebitK
 export type ActivityItem = {
   id: number;
   title: string;
-  type: "DEPOSIT" | "WITHDRAWAL" | "WITHDRAWAL_REVERSAL" | "TRANSFER" | "BILL_PAYMENT";
+  type: "DEPOSIT" | "WITHDRAWAL" | "WITHDRAWAL_REVERSAL" | "TRANSFER" | "BILL_PAYMENT" | "BILL_PAYMENT_REVERSAL";
   status: string;
   amountKobo: string;
   feeKobo?: string;
@@ -34,13 +34,20 @@ export type ActivityItem = {
 };
 export type AirtimeNetwork = { id: "mtn" | "glo" | "airtel" | "etisalat"; name: string };
 export type BillPurchase = {
-  id: number; reference: string; category: "AIRTIME"; network: string; phone: string;
+  id: number; reference: string; category: "AIRTIME" | "DATA"; network: string; phone: string;
   amountKobo: string; status: "PENDING" | "DELIVERED" | "FAILED" | "REVERSED";
+  variationCode?: string | null; planName?: string | null; planKind?: "SME" | "STANDARD" | null;
   failureReason?: string | null; createdAt: string;
+};
+export type DataNetwork = { id: "mtn" | "airtel" | "glo" | "etisalat"; name: string };
+export type DataPlan = {
+  planId: string; name: string; sizeLabel: string | null; validityLabel: string | null;
+  validityBucket: "daily" | "weekly" | "monthly" | "longterm" | "other";
+  kind: "SME" | "STANDARD"; amountKobo: number;
 };
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public data?: Record<string, unknown>) {
     super(message);
     this.name = "ApiError";
   }
@@ -106,6 +113,7 @@ export async function request<T>(
     throw new ApiError(
       response.status,
       data?.error ?? "Something went wrong. Try again.",
+      data && typeof data === "object" ? data : undefined,
     );
   }
   return data as T;
@@ -213,6 +221,14 @@ export function getTransactions() {
 
 export function getAirtimeNetworks() {
   return request<AirtimeNetwork[]>("/api/bills/airtime/networks");
+}
+
+export function getDataNetworks() { return request<DataNetwork[]>("/api/bills/data/networks"); }
+export function getDataPlans(network: string) {
+  return request<DataPlan[]>(`/api/bills/data/plans?network=${encodeURIComponent(network)}`);
+}
+export function purchaseData(input: { idempotencyKey: string; network: string; phone: string; planId: string; expectedAmountKobo: number }) {
+  return request<BillPurchase>("/api/bills/data/purchase", { method: "POST", body: JSON.stringify(input) });
 }
 
 export function purchaseAirtime(input: {

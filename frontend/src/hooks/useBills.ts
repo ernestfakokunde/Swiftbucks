@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAirtimeNetworks, getBillPurchase, purchaseAirtime, type AirtimeNetwork } from "@/lib/api";
+import { getAirtimeNetworks, getDataNetworks, getDataPlans, getBillPurchase, purchaseAirtime, purchaseData, type AirtimeNetwork } from "@/lib/api";
 import { useReference } from "./useReference";
 
 const fallback: AirtimeNetwork[] = [
@@ -12,6 +12,14 @@ const fallback: AirtimeNetwork[] = [
 export function useAirtimeNetworks() {
   const query = useQuery({ queryKey: ["bills", "airtime", "networks"], queryFn: getAirtimeNetworks, staleTime: 60 * 60 * 1000 });
   return { ...query, data: query.data ?? fallback };
+}
+
+export function useDataNetworks() {
+  return useQuery({ queryKey: ["bills", "data", "networks"], queryFn: getDataNetworks, staleTime: 60 * 60 * 1000 });
+}
+
+export function useDataPlans(network: string) {
+  return useQuery({ queryKey: ["bills", "data", "plans", network], queryFn: () => getDataPlans(network), enabled: Boolean(network), staleTime: 60 * 60 * 1000 });
 }
 
 export function useAirtimePurchase(fingerprint: string) {
@@ -25,6 +33,24 @@ export function useAirtimePurchase(fingerprint: string) {
       void client.invalidateQueries({ queryKey: ["balance"] });
       void client.invalidateQueries({ queryKey: ["activity"] });
       void client.invalidateQueries({ queryKey: ["bills"] });
+    },
+  });
+  return { ...mutation, reference };
+}
+
+export function useDataPurchase(fingerprint: string) {
+  const reference = useReference("data", fingerprint);
+  const client = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (input: { network: string; phone: string; planId: string; expectedAmountKobo: number }) =>
+      purchaseData({ ...input, idempotencyKey: reference.get() }),
+    onSuccess: (purchase) => {
+      if (purchase.status !== "PENDING") reference.reset();
+      if (purchase.status !== "PENDING") {
+        void client.invalidateQueries({ queryKey: ["balance"] });
+        void client.invalidateQueries({ queryKey: ["activity"] });
+        void client.invalidateQueries({ queryKey: ["bills"] });
+      }
     },
   });
   return { ...mutation, reference };

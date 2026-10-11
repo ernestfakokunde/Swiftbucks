@@ -120,6 +120,9 @@ model BillPurchase {
   providerRequestId  String   @unique
   category           String
   serviceId          String
+  variationCode      String?
+  planName           String?
+  planKind           String?
   customerRef        String
   amountKobo         BigInt
   providerCostKobo   BigInt?

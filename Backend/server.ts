@@ -12,14 +12,15 @@ import billsRoutes from "./src/routes/bills.routes.js";
 import { errorHandler } from "./src/middleware/errorHandler.js";
 import { seedSystemAccounts } from "./src/services/systemAccounts.service.js";
 import { reconcileBills } from "./src/services/bills.service.js";
+import { refreshAvailableDataServices } from "./src/services/dataPlans.service.js";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
 }
 for (const [primary, legacy] of [
-  ["VTU_PASS_API_KEY", "VTPASS_API_KEY"],
-  ["VTU_PASS_PUBLIC_KEY", "VTPASS_PUBLIC_KEY"],
-  ["VTU_PASS_SECRET_KEY", "VTPASS_SECRET_KEY"],
+  ["VTPASS_API_KEY", "VTU_PASS_API_KEY"],
+  ["VTPASS_PUBLIC_KEY", "VTU_PASS_PUBLIC_KEY"],
+  ["VTPASS_SECRET_KEY", "VTU_PASS_SECRET_KEY"],
 ] as const) {
   if (!process.env[primary] && !process.env[legacy]) throw new Error(`${primary} is required`);
 }
@@ -60,6 +61,7 @@ const PORT = process.env.PORT || 4000;
 
 await db.connect();
 await seedSystemAccounts();
+await refreshAvailableDataServices();
 app.listen(PORT, () => {
   console.log("Server is running quieltly on port " + PORT);
 });

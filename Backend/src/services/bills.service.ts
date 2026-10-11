@@ -3,12 +3,11 @@ import { AppError } from "../lib/errors.js";
 import {
   classifyVtpassResponse,
   generateProviderRequestId,
-  purchaseAirtime as callProvider,
-  getVtpassBalance,
-  requeryVtpass,
   vtpassResponseDetails,
+  vtpassProvider,
   type BillOutcome,
 } from "../lib/vtpass.js";
+import { amountNairaToKobo, clearDataPlansCache, findDataPlan } from "./dataPlans.service.js";
 
 export const AIRTIME_NETWORKS = [
   { id: "mtn", name: "MTN" },
@@ -28,6 +27,7 @@ export function serializePurchase(purchase: {
   id: number; providerRequestId: string; category: string; serviceId: string; customerRef: string;
   amountKobo: bigint; providerCostKobo: bigint | null; commissionKobo: bigint | null; status: string;
   failureReason: string | null; providerTxId: string | null; createdAt: string;
+  variationCode?: string | null; planName?: string | null; planKind?: string | null;
 }) {
   return {
     id: purchase.id, reference: purchase.providerRequestId, category: purchase.category,
@@ -37,19 +37,29 @@ export function serializePurchase(purchase: {
     commissionKobo: purchase.commissionKobo?.toString() ?? null,
     status: statusForClient(purchase.status), failureReason: purchase.failureReason,
     providerTxId: purchase.providerTxId, createdAt: purchase.createdAt,
+    variationCode: purchase.variationCode ?? null, planName: purchase.planName ?? null, planKind: purchase.planKind ?? null,
   };
 }
 
-async function reserve(userId: number, input: { idempotencyKey: string; network: string; phone: string; amountKobo: number }) {
+type ReservationInput = { idempotencyKey: string; network: string; phone: string; amountKobo: number; category?: "AIRTIME" | "DATA"; serviceId?: string; variationCode?: string; planName?: string; planKind?: string };
+function sameNetworkService(serviceId: string, network: string) {
+  const id = serviceId.toLowerCase();
+  if (network === "etisalat") return id.startsWith("etisalat") || id.startsWith("9mobile");
+  return id === network || id.startsWith(`${network}-`);
+}
+
+async function reserve(userId: number, input: ReservationInput) {
+  const serviceId = input.serviceId ?? input.network;
+  const category = input.category ?? "AIRTIME";
   const existing = await db.orm.public.BillPurchase.where({ userId, idempotencyKey: input.idempotencyKey }).first();
   if (existing) {
-    if (existing.serviceId !== input.network || existing.customerRef !== input.phone || BigInt(existing.amountKobo) !== BigInt(input.amountKobo)) {
+    if (existing.serviceId !== serviceId || existing.customerRef !== input.phone || BigInt(existing.amountKobo) !== BigInt(input.amountKobo) || existing.category !== category || (input.variationCode && existing.variationCode !== input.variationCode)) {
       throw new AppError(409, "Idempotency key reused with different details");
     }
     return { purchase: existing, duplicate: true };
   }
   const recent = await db.orm.public.BillPurchase.where({ userId }).all();
-  if (recent.some((item) => item.serviceId === input.network && item.customerRef === input.phone && Date.now() - new Date(item.createdAt).getTime() < 60_000 && item.idempotencyKey !== input.idempotencyKey)) {
+  if (recent.some((item) => sameNetworkService(item.serviceId, input.network) && item.customerRef === input.phone && Date.now() - new Date(item.createdAt).getTime() < 60_000 && item.idempotencyKey !== input.idempotencyKey)) {
     throw new AppError(409, "Please wait a minute before buying again for this number.");
   }
   const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -72,8 +82,9 @@ async function reserve(userId: number, input: { idempotencyKey: string; network:
       await tx.orm.public.LedgerEntry.create({ transactionId: transaction.id, accountId: wallet.id, amountKobo: -BigInt(input.amountKobo) });
       await tx.orm.public.LedgerEntry.create({ transactionId: transaction.id, accountId: pending.id, amountKobo: BigInt(input.amountKobo) });
       const purchase = await tx.orm.public.BillPurchase.create({
-        userId, idempotencyKey: input.idempotencyKey, providerRequestId: reference, category: "AIRTIME",
-        serviceId: input.network, customerRef: input.phone, amountKobo: BigInt(input.amountKobo),
+        userId, idempotencyKey: input.idempotencyKey, providerRequestId: reference, category,
+        serviceId, customerRef: input.phone, amountKobo: BigInt(input.amountKobo),
+        variationCode: input.variationCode ?? null, planName: input.planName ?? null, planKind: input.planKind ?? null,
         transactionId: transaction.id, status: "RESERVED",
       });
       return { purchase, duplicate: false };
@@ -159,18 +170,30 @@ async function applyOutcome(id: number, body: unknown): Promise<BillOutcome> {
   const details = vtpassResponseDetails(body);
   const outcome = classifyVtpassResponse(details.code, details.status);
   if (["018", "023", "027", "028", "087"].includes(details.code ?? "")) console.error("BILLS_CONFIG_ALERT", details.code);
-  if (outcome === "DELIVERED") await settlePurchase(id, details);
-  else if (outcome === "FAILED" || outcome === "REVERSED") await reversePurchase(id, details.status ?? details.code ?? "Provider failure");
+  const purchase = await db.orm.public.BillPurchase.where({ id }).first();
+  if (details.code === "010" && purchase?.category === "DATA") clearDataPlansCache(purchase.serviceId);
+  if (outcome === "DELIVERED") {
+    await settlePurchase(id, details);
+    if (purchase?.category === "DATA" && purchase.variationCode) {
+      const reportedKobo = amountNairaToKobo(details.amount ?? details.unitPrice);
+      if (reportedKobo !== null && reportedKobo !== Number(purchase.amountKobo)) {
+        console.error("BILL_PRICE_MISMATCH", `${purchase.serviceId}|${purchase.variationCode}`, Number(purchase.amountKobo), reportedKobo);
+      }
+    }
+  } else if (outcome === "FAILED" || outcome === "REVERSED") {
+    const reason = ["027", "028"].includes(details.code ?? "") ? "Service temporarily unavailable" : details.status ?? details.code ?? "Provider failure";
+    await reversePurchase(id, reason);
+  }
   return outcome;
 }
 
-export async function purchaseBill(userId: number, input: { idempotencyKey: string; network: string; phone: string; amountKobo: number }) {
+export async function purchaseBill(userId: number, input: ReservationInput) {
   const reserved = await reserve(userId, input);
   if (reserved.duplicate) return { purchase: serializePurchase(reserved.purchase), statusCode: 200 };
   await updateProcessing(reserved.purchase.id);
   let body: unknown;
   try {
-    body = await callProvider({ requestId: reserved.purchase.providerRequestId, serviceId: input.network, amountNaira: input.amountKobo / 100, phone: input.phone });
+    body = await vtpassProvider.buy({ requestId: reserved.purchase.providerRequestId, serviceId: reserved.purchase.serviceId, amountNaira: input.amountKobo / 100, phone: input.phone, ...(reserved.purchase.variationCode ? { variationCode: reserved.purchase.variationCode } : {}) });
   } catch (error) {
     console.error("BILL_OUTCOME_UNKNOWN", reserved.purchase.providerRequestId, error instanceof Error ? error.message : "provider error");
     return { purchase: serializePurchase(await db.orm.public.BillPurchase.where({ id: reserved.purchase.id }).first() ?? reserved.purchase), statusCode: 202 };
@@ -180,19 +203,31 @@ export async function purchaseBill(userId: number, input: { idempotencyKey: stri
   return { purchase: serializePurchase(fresh ?? reserved.purchase), statusCode: outcome === "PENDING" ? 202 : 201 };
 }
 
+export async function purchaseDataBill(userId: number, input: { idempotencyKey: string; network: string; phone: string; planId: string; expectedAmountKobo: number }) {
+  const plan = await findDataPlan(input.planId, input.network);
+  if (!plan) throw new AppError(409, "Plan no longer available");
+  if (plan.amountKobo !== input.expectedAmountKobo) throw new AppError(409, "Price changed", { amountKobo: plan.amountKobo });
+  return purchaseBill(userId, {
+    idempotencyKey: input.idempotencyKey, network: input.network, phone: input.phone,
+    amountKobo: plan.amountKobo, category: "DATA", serviceId: plan.serviceId,
+    variationCode: plan.variationCode, planName: plan.name, planKind: plan.kind,
+  });
+}
+
 export async function requeryPurchase(id: number) {
   const purchase = await db.orm.public.BillPurchase.where({ id }).first();
   if (!purchase) return null;
   try {
-    const response = await requeryVtpass(purchase.providerRequestId);
+    const response = await vtpassProvider.requery(purchase.providerRequestId);
     const details = vtpassResponseDetails(response);
     if (details.code === "015" && purchase.failureReason !== "RETRY_SENT") {
       await db.orm.public.BillPurchase.where({ id }).update({ failureReason: "RETRY_SENT" });
-      return await applyOutcome(id, await callProvider({
+      return await applyOutcome(id, await vtpassProvider.buy({
         requestId: purchase.providerRequestId,
         serviceId: purchase.serviceId,
         amountNaira: Number(purchase.amountKobo) / 100,
         phone: purchase.customerRef,
+        ...(purchase.variationCode ? { variationCode: purchase.variationCode } : {}),
       }));
     }
     return await applyOutcome(id, response);
@@ -213,7 +248,7 @@ export async function reconcileBills() {
     }
   }
   try {
-    const balance = await getVtpassBalance();
+    const balance = await vtpassProvider.balance();
     const root = balance && typeof balance === "object" ? balance as { contents?: { balance?: number }; balance?: number } : {};
     const kobo = Math.round((root.contents?.balance ?? root.balance ?? 0) * 100);
     if (kobo < Number(process.env.BILLS_FLOAT_MIN_KOBO ?? 100_000)) console.error("BILLS_FLOAT_LOW", kobo);

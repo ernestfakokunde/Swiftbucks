@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { getDepositStatus, ApiError } from "@/lib/api";
@@ -10,6 +10,10 @@ import { Loader } from "@/components/Loader";
 import { Button } from "@/components/Button";
 import { formatNaira } from "@/lib/money";
 
+const subscribeToStorage = () => () => {};
+const getStoredDepositReference = () => sessionStorage.getItem("swiftbuck-deposit-reference");
+const getServerDepositReference = () => null;
+
 function DoneContent() {
   const search = useSearchParams();
   const router = useRouter();
@@ -17,11 +21,8 @@ function DoneContent() {
   const [hidden, setHidden] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const timeoutRef = useRef<number | undefined>(undefined);
-  const [storedReference, setStoredReference] = useState<string | null>(null);
+  const storedReference = useSyncExternalStore(subscribeToStorage, getStoredDepositReference, getServerDepositReference);
   const reference = search.get("reference") ?? search.get("trxref") ?? storedReference;
-  useEffect(() => {
-    setStoredReference(sessionStorage.getItem("swiftbuck-deposit-reference"));
-  }, []);
   const status = useQuery({
     queryKey: ["deposit-status", reference],
     queryFn: () => getDepositStatus(reference as string),

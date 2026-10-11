@@ -9,7 +9,7 @@ export function errorHandler(
 ) {
   // Our own labelled errors: send the status and message the service chose
   if (err instanceof AppError) {
-    return res.status(err.status).json({ error: err.message });
+    return res.status(err.status).json({ error: err.message, ...err.details });
   }
 
   // Anything else is a real bug or outage: log it, tell the user nothing sensitive

@@ -1,0 +1,4 @@
+ALTER TABLE "BillPurchase"
+  ADD COLUMN IF NOT EXISTS "variationCode" TEXT,
+  ADD COLUMN IF NOT EXISTS "planName" TEXT,
+  ADD COLUMN IF NOT EXISTS "planKind" TEXT;

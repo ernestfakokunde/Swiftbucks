@@ -63,6 +63,15 @@ export const quoteLimiter = rateLimit({
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 
+export const dataPlanLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.userId ?? req.ip),
+  handler: (_req, res) => res.status(429).json(tooManyRequests.message),
+});
+
 export const webhookLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 120,

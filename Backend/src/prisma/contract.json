@@ -192,6 +192,20 @@
                   "kind": "scalar"
                 }
               },
+              "planKind": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "planName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "providerCostKobo": {
                 "nullable": true,
                 "type": {
@@ -245,6 +259,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "variationCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               }
@@ -309,6 +330,12 @@
                 "idempotencyKey": {
                   "column": "idempotencyKey"
                 },
+                "planKind": {
+                  "column": "planKind"
+                },
+                "planName": {
+                  "column": "planName"
+                },
                 "providerCostKobo": {
                   "column": "providerCostKobo"
                 },
@@ -332,6 +359,9 @@
                 },
                 "userId": {
                   "column": "userId"
+                },
+                "variationCode": {
+                  "column": "variationCode"
                 }
               },
               "namespaceId": "public",
@@ -1244,6 +1274,16 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "planKind": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "planName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "providerCostKobo": {
                   "codecId": "pg/int8@1",
                   "nativeType": "int8",
@@ -1287,6 +1327,11 @@
                   "codecId": "pg/int4@1",
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "variationCode": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -1950,7 +1995,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "95e699c10b2e67c0e6ce1f0040131a078f5f9335eb87f24019c47c6f22f5d1c8"
+    "storageHash": "957f4f297a2bc71e5afb999768ed5b2a9c435c98739602c0d6f79a7aa4285a09"
   },
   "execution": {
     "executionHash": "d87241eacfa39b1cc792ec4a6a6bf8a43ca873e4985a6d9c8133731d04b6a92a",

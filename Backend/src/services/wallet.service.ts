@@ -634,7 +634,9 @@ export async function lookupUser(username: string){
         : null;
     const bill = transaction.type === "BILL_PAYMENT"
         ? await db.orm.public.BillPurchase.where({ transactionId: transaction.id }).first()
-        : null;
+        : transaction.type === "BILL_PAYMENT_REVERSAL"
+          ? await db.orm.public.BillPurchase.where({ providerRequestId: transaction.reference.replace(/_settle_reversal$|_reversal$/, "") }).first()
+          : null;
     let title = "Transaction";
 
     if (transaction.type === "DEPOSIT") title = "Added money";
@@ -644,8 +646,20 @@ export async function lookupUser(username: string){
       const name = await otherPartyName(transaction.id, wallet.id);
       title = amount < BigInt(0) ? `Sent to ${name}` : `Received from ${name}`;
     }
+    else if (transaction.type === "BILL_PAYMENT_REVERSAL" && bill) {
+      const maskedPhone = `${bill.customerRef.slice(0, 4)}***${bill.customerRef.slice(-3)}`;
+      const network = bill.serviceId.startsWith("mtn") ? "MTN" : bill.serviceId.startsWith("airtel") ? "Airtel" : bill.serviceId.startsWith("glo") ? "Glo" : "9mobile";
+      title = `${bill.category === "DATA" ? `${network} data` : `${network} airtime`} reversed ${maskedPhone}`;
+    }
     else if (bill) {
-      title = `${bill.serviceId.toUpperCase()} airtime ${bill.customerRef.slice(0, 4)}***${bill.customerRef.slice(-3)}`;
+      const maskedPhone = `${bill.customerRef.slice(0, 4)}***${bill.customerRef.slice(-3)}`;
+      if (bill.category === "DATA") {
+        const network = bill.serviceId.startsWith("mtn") ? "MTN" : bill.serviceId.startsWith("airtel") ? "Airtel" : bill.serviceId.startsWith("glo") ? "Glo" : "9mobile";
+        const size = bill.planName?.match(/\b\d+(?:\.\d+)?\s*(?:TB|GB|MB|KB)\b/i)?.[0];
+        title = `${network} ${size ?? bill.planName ?? "Data"} data ${maskedPhone}`;
+      } else {
+        title = `${bill.serviceId.toUpperCase()} airtime ${maskedPhone}`;
+      }
     }
 
     items.push({
@@ -653,7 +667,7 @@ export async function lookupUser(username: string){
       title,
       type: transaction.type,
       status: transaction.status,
-      amountKobo: withdrawal || bill ? (-BigInt(withdrawal?.amountKobo ?? bill?.amountKobo ?? 0)).toString() : amount.toString(),
+      amountKobo: withdrawal ? (-BigInt(withdrawal.amountKobo)).toString() : bill && transaction.type === "BILL_PAYMENT" ? (-BigInt(bill.amountKobo)).toString() : amount.toString(),
       feeKobo: withdrawal ? BigInt(withdrawal.feeKobo).toString() : undefined,
       createdAt: entry.createdAt,
     });
