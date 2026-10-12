@@ -189,9 +189,10 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
         </>
       )}
       <label htmlFor="amount" className="mt-5 text-[13px] text-muted">Amount</label>
-      <div className="my-2.5 flex items-baseline justify-center gap-1.5">
-        <span className="font-display text-3xl text-muted">₦</span>
-        <input id="amount" inputMode="decimal" {...form.register("amount")} placeholder="0" className="w-full max-w-[230px] bg-transparent text-center font-display text-[50px] font-bold tabular-nums text-orange outline-none" />
+      <div className="mt-2 flex min-h-[72px] items-center gap-3 rounded-2xl border border-line bg-bg px-4 transition-colors focus-within:border-orange focus-within:ring-4 focus-within:ring-orange/10">
+        <span aria-hidden="true" className="font-display text-2xl font-semibold text-muted">&#8358;</span>
+        <input id="amount" inputMode="decimal" autoComplete="off" {...form.register("amount")} placeholder="0.00" className="min-w-0 flex-1 bg-transparent font-display text-3xl font-semibold tabular-nums text-deep placeholder:text-muted/50 outline-none" />
+        <span aria-hidden="true" className="text-[10px] font-semibold tracking-wide text-muted">NGN</span>
       </div>
       {isAdd && <p className="text-center text-xs text-muted">Minimum amount is ₦500.</p>}
       {isAdd && depositQuoteData && (

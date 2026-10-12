@@ -21,8 +21,8 @@ async function acquireLease(owner: string): Promise<boolean> {
   const expiresAt = new Date(Date.now() + LEASE_MS).toISOString();
   const result = await db.transaction((tx) => tx.query(db.raw.sql`
     WITH acquired AS (
-      INSERT INTO "JobLease" ("name", "owner", "lockedUntil")
-      VALUES (${LEASE_NAME}, ${owner}, ${expiresAt})
+      INSERT INTO "JobLease" ("name", "owner", "lockedUntil", "updatedAt")
+      VALUES (${LEASE_NAME}, ${owner}, ${expiresAt}, now())
       ON CONFLICT ("name") DO UPDATE
         SET "owner" = EXCLUDED."owner", "lockedUntil" = EXCLUDED."lockedUntil", "updatedAt" = now()
         WHERE "JobLease"."lockedUntil" <= now()
