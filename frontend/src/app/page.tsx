@@ -10,10 +10,20 @@ import { WalletSkeleton } from "@/components/WalletSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
-const billLinks = [
-  { href: "/bills/airtime", title: "Airtime", description: "Top up any network", icon: "↗", tone: "bg-orange/12 text-orange" },
-  { href: "/bills/data", title: "Data bundles", description: "Pick a plan that fits", icon: "◉", tone: "bg-emerald-50 text-emerald-700" },
-];
+const serviceLinks = [
+  { href: "/send", title: "Transfer", icon: "transfer", tone: "bg-emerald-50 text-emerald-700" },
+  { href: "/bills/data", title: "Data bundle", icon: "data", tone: "bg-teal-50 text-teal-700" },
+  { href: "/bills/airtime", title: "Airtime", icon: "airtime", tone: "bg-blue-50 text-blue-700" },
+  { href: null, title: "Electricity", icon: "electricity", tone: "bg-lime-50 text-lime-700" },
+] as const;
+
+function ServiceIcon({ name }: { name: (typeof serviceLinks)[number]["icon"] }) {
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (name === "transfer") return <svg viewBox="0 0 24 24" className="h-5 w-5" {...common}><path d="M4 7h14m0 0-3-3m3 3-3 3M20 17H6m0 0 3 3m-3-3 3-3" /></svg>;
+  if (name === "data") return <svg viewBox="0 0 24 24" className="h-5 w-5" {...common}><rect x="5" y="3" width="14" height="18" rx="2.5" /><path d="M9 7h6M9 11h6m-6 6h.01M12 17h.01M15 17h.01" /></svg>;
+  if (name === "airtime") return <svg viewBox="0 0 24 24" className="h-5 w-5" {...common}><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M10 5h4m-2 13h.01" /><path d="m10 10 2 2 3-3" /></svg>;
+  return <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true"><path d="M13.1 1.8 5.7 13h5.1l-.5 9.2L18.3 11h-5.1z" /></svg>;
+}
 
 export default function Home() {
   const balance = useBalance();
@@ -69,28 +79,32 @@ export default function Home() {
               </div>
             </section>
 
-          <section aria-labelledby="bills-heading" className="rounded-[24px] border border-line bg-surface p-4 shadow-sm sm:p-5">
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <div>
-                <h2 id="bills-heading" className="font-display text-base font-bold">Pay a bill</h2>
-                <p className="mt-1 text-xs text-muted">Everyday payments, all in one place.</p>
-              </div>
-              <span className="rounded-full bg-bg px-3 py-1 text-[11px] font-medium text-muted">Bills</span>
+          <section aria-labelledby="services-heading" className="rounded-[24px] border border-line bg-surface p-4 shadow-sm sm:p-5">
+            <div className="mb-4">
+              <h2 id="services-heading" className="font-display text-base font-bold">Services</h2>
+              <p className="mt-1 text-xs text-muted">Everyday services, a few taps away.</p>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              {billLinks.map((bill) => (
-                <Link key={bill.href} href={bill.href} className="group flex min-h-[76px] items-center gap-3 rounded-2xl border border-line/80 bg-white p-3 transition-all hover:-translate-y-0.5 hover:border-orange/40 hover:shadow-md">
-                  <span aria-hidden="true" className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-xl ${bill.tone}`}>{bill.icon}</span>
-                  <span className="min-w-0 flex-1">
-                    <strong className="block font-display text-sm font-semibold">{bill.title}</strong>
-                    <span className="mt-0.5 block text-xs text-muted">{bill.description}</span>
-                  </span>
-                  <span aria-hidden="true" className="text-xl text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-orange">›</span>
-                </Link>
-              ))}
-              <div className="flex min-h-[58px] items-center justify-between rounded-2xl border border-dashed border-line bg-bg/70 px-4 text-sm text-muted sm:col-span-2 xl:col-span-1 2xl:col-span-2">
-                <span>Electricity and TV</span><span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide">Coming soon</span>
-              </div>
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              {serviceLinks.map((service) => {
+                const content = (
+                  <>
+                    <span aria-hidden="true" className={"grid h-10 w-10 place-items-center rounded-[14px] " + service.tone}>
+                      <ServiceIcon name={service.icon} />
+                    </span>
+                    <span className="mt-2 text-center text-[10px] font-semibold leading-tight text-deep sm:text-xs">{service.title}</span>
+                    {service.href === null && <span className="mt-1 text-[8px] font-medium text-muted sm:text-[9px]">Coming soon</span>}
+                  </>
+                );
+                return service.href ? (
+                  <Link key={service.title} href={service.href} className="flex min-h-[88px] flex-col items-center justify-center rounded-2xl border border-line/70 bg-white px-1.5 py-2 transition-all hover:-translate-y-0.5 hover:border-orange/40 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange">
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={service.title} aria-label={service.title + ", coming soon"} className="flex min-h-[88px] flex-col items-center justify-center rounded-2xl border border-line/70 bg-white/60 px-1.5 py-2 text-muted">
+                    {content}
+                  </div>
+                );
+              })}
             </div>
           </section>
           </div>
