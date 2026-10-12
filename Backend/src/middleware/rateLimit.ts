@@ -1,8 +1,12 @@
-import { rateLimit } from "express-rate-limit";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
 const tooManyRequests = {
   message: { error: "Too many requests, try again later" },
 };
+
+function userOrIpKey(userId: number | undefined, ip: string) {
+  return userId === undefined ? `ip:${ipKeyGenerator(ip)}` : `user:${userId}`;
+}
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -41,7 +45,7 @@ export const depositStatusLimiter = rateLimit({
   limit: 30,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  keyGenerator: (req) => String(req.userId ?? req.ip),
+  keyGenerator: (req) => userOrIpKey(req.userId, req.ip ?? ""),
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 
@@ -50,7 +54,7 @@ export const bankResolveLimiter = rateLimit({
   limit: 10,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  keyGenerator: (req) => String(req.userId ?? req.ip),
+  keyGenerator: (req) => userOrIpKey(req.userId, req.ip ?? ""),
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 
@@ -59,7 +63,7 @@ export const bankListLimiter = rateLimit({
   limit: 30,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  keyGenerator: (req) => String(req.userId ?? req.ip),
+  keyGenerator: (req) => userOrIpKey(req.userId, req.ip ?? ""),
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 
@@ -68,7 +72,7 @@ export const quoteLimiter = rateLimit({
   limit: 30,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  keyGenerator: (req) => String(req.userId ?? req.ip),
+  keyGenerator: (req) => userOrIpKey(req.userId, req.ip ?? ""),
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 
@@ -77,7 +81,7 @@ export const dataPlanLimiter = rateLimit({
   limit: 30,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  keyGenerator: (req) => String(req.userId ?? req.ip),
+  keyGenerator: (req) => userOrIpKey(req.userId, req.ip ?? ""),
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 

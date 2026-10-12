@@ -8,7 +8,7 @@
 
 Swiftbuck is a wallet and bill-payment application. The Next.js frontend provides signup/login, wallet balance, deposits, transfers, withdrawals, activity, airtime, and data purchases. The Express/TypeScript API manages sessions, wallet operations, ledger entries, payment-provider callbacks, and the VTpass bill catalog and purchases. Postgres stores users, accounts, transactions, ledger entries, payment intents, withdrawals, and bill purchases.
 
-The latest code changes add a database lease to coordinate the reconciliation worker across app instances; recovery checks for pending bills, deposits, and withdrawals; read-only ledger integrity checks; periodic VTpass float comparison; CSRF origin/content-type checks for browser mutations; bounded webhook parsers; production provider-key guards; and server-side resolution of withdrawal account names. The frontend request helper now preserves the 30-second timeout when callers supply an abort signal. Bank listing has a per-user rate limit.
+The latest code changes add a database lease to coordinate the reconciliation worker across app instances; recovery checks for pending bills, deposits, and withdrawals; read-only ledger integrity checks; periodic VTpass float comparison; CSRF origin/content-type checks for browser mutations; bounded webhook parsers; production provider-key guards; and server-side resolution of withdrawal account names. The frontend request helper now preserves the 30-second timeout when callers supply an abort signal. Bank listing has a per-user rate limit. Custom rate-limit keys now use the express-rate-limit IPv6 helper; the backing store remains in-memory.
 
 These changes are in the local working tree. No deployment or live provider transaction was performed.
 
