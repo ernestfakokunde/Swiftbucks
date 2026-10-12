@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { classifyVtpassResponse, generateProviderRequestId, vtpassResponseDetails } from "./vtpass.js";
+import { classifyVtpassResponse, generateProviderRequestId, getVtpassBaseUrl, vtpassResponseDetails } from "./vtpass.js";
+
+describe("VTpass environment URL selection", () => {
+  it("uses sandbox by default until a live endpoint is configured", () => {
+    expect(getVtpassBaseUrl({ configuredUrl: null })).toBe("https://sandbox.vtpass.com");
+    expect(getVtpassBaseUrl({ configuredUrl: "https://vtpass.com/api/" })).toBe("https://vtpass.com");
+  });
+
+  it("allows the sandbox endpoint in a production deployment for integration testing", () => {
+    expect(getVtpassBaseUrl({
+      configuredUrl: "https://sandbox.vtpass.com",
+    })).toBe("https://sandbox.vtpass.com");
+  });
+});
 
 describe("VTpass response classification", () => {
   it("classifies every documented definite failure code", () => {

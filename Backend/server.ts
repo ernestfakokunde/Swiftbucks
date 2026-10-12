@@ -14,6 +14,7 @@ import { seedSystemAccounts } from "./src/services/systemAccounts.service.js";
 import { reconcileFinancialFlows } from "./src/services/reconcile.service.js";
 import { refreshAvailableDataServices } from "./src/services/dataPlans.service.js";
 import { csrfProtection } from "./src/middleware/csrf.js";
+import { getVtpassBaseUrl } from "./src/lib/vtpass.js";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
@@ -22,12 +23,9 @@ for (const key of ["VTPASS_API_KEY", "VTPASS_PUBLIC_KEY", "VTPASS_SECRET_KEY"] a
   if (!process.env[key]) throw new Error(`${key} is required`);
 }
 if (process.env.NODE_ENV === "production") {
-  const vtpassUrl = process.env.VTPASS_BASE_URL ?? "https://sandbox.vtpass.com";
-  if (vtpassUrl.toLowerCase().includes("sandbox") && process.env.ALLOW_SANDBOX_IN_PRODUCTION !== "true") {
-    throw new Error("VTpass sandbox URL is not allowed in production without ALLOW_SANDBOX_IN_PRODUCTION=true");
-  }
+  console.info("VTPASS_ENVIRONMENT", getVtpassBaseUrl().includes("sandbox") ? "sandbox" : "live");
   if (process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test")) {
-    throw new Error("Paystack test keys are not allowed in production");
+    console.warn("PAYSTACK_TEST_KEY_IN_PRODUCTION", "Paystack requests will use test mode");
   }
 }
 

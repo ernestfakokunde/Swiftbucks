@@ -43,17 +43,23 @@ export function generateProviderRequestId(now = new Date()): string {
   return `${parts.year}${parts.month}${parts.day}${parts.hour}${parts.minute}${randomBytes(8).toString("hex")}`;
 }
 
-const baseUrl = () => (
-  process.env.VTPASS_BASE_URL
-  ?? "https://sandbox.vtpass.com"
-).replace(/\/$/, "");
+const SANDBOX_BASE_URL = "https://sandbox.vtpass.com";
+
+export function getVtpassBaseUrl(config: {
+  configuredUrl?: string | null;
+} = {}) {
+  const configuredUrl = Object.hasOwn(config, "configuredUrl") ? config.configuredUrl : process.env.VTPASS_BASE_URL;
+  return (configuredUrl?.trim() || SANDBOX_BASE_URL)
+    .replace(/\/$/, "")
+    .replace(/\/api$/i, "");
+}
 
 async function callVtpass(path: string, init: RequestInit) {
   const configuredTimeout = Number(process.env.VTPASS_TIMEOUT_MS ?? 45_000);
   const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout >= 5_000
     ? Math.min(configuredTimeout, 100_000)
     : 45_000;
-  const response = await fetch(`${baseUrl()}${path}`, {
+  const response = await fetch(`${getVtpassBaseUrl()}${path}`, {
     ...init,
     signal: init.signal ?? AbortSignal.timeout(timeoutMs),
     headers: {

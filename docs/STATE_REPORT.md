@@ -8,7 +8,7 @@
 
 Swiftbuck is a wallet and bill-payment application. The Next.js frontend provides signup/login, wallet balance, deposits, transfers, withdrawals, activity, airtime, and data purchases. The Express/TypeScript API manages sessions, wallet operations, ledger entries, payment-provider callbacks, and the VTpass bill catalog and purchases. Postgres stores users, accounts, transactions, ledger entries, payment intents, withdrawals, and bill purchases.
 
-The latest code changes add a database lease to coordinate the reconciliation worker across app instances; recovery checks for pending bills, deposits, and withdrawals; read-only ledger integrity checks; periodic VTpass float comparison; CSRF origin/content-type checks for browser mutations; bounded webhook parsers; production provider-key guards; and server-side resolution of withdrawal account names. The frontend request helper now preserves the 30-second timeout when callers supply an abort signal. Bank listing has a per-user rate limit. Custom rate-limit keys now use the express-rate-limit IPv6 helper; the backing store remains in-memory.
+The latest code changes add a database lease to coordinate the reconciliation worker across app instances; recovery checks for pending bills, deposits, and withdrawals; read-only ledger integrity checks; periodic VTpass float comparison; CSRF origin/content-type checks for browser mutations; bounded webhook parsers; production provider-key guards; and server-side resolution of withdrawal account names. VTpass sandbox is now allowed in production deployments for integration testing, and startup logs which endpoint is selected. VTpass's sandbox/live endpoint is selected by `VTPASS_BASE_URL` (default sandbox); changing credentials alone does not switch endpoints. The frontend request helper preserves the 30-second timeout when callers supply an abort signal. Bank listing has a per-user rate limit. Custom rate-limit keys use the express-rate-limit IPv6 helper; the backing store remains in-memory.
 
 These changes are in the local working tree. No deployment or live provider transaction was performed.
 
@@ -16,7 +16,7 @@ These changes are in the local working tree. No deployment or live provider tran
 
 | Check | Result |
 |---|---|
-| Backend unit tests | **Verified:** 33 tests passed across 4 files. |
+| Backend unit tests | **Verified:** 35 tests passed across 4 files. |
 | Backend TypeScript | **Verified:** `npx tsc --noEmit` passed. |
 | Frontend lint | **Verified:** `npm run lint` passed. |
 | Frontend production build | **Verified:** `npm run build` passed; 12 static routes generated. |
@@ -52,13 +52,13 @@ There were 8 delivered and 9 reversed bill records; no bill was left reserved or
 - **Deposits:** A signed Paystack success event credits only an existing intent with matching amount and currency. If the event omits its provider fee, the code attempts Paystack verification and records an alert if the fee is still unknown. Late success can complete an expired intent.
 - **Withdrawals:** The browser supplies bank code and account number; the backend resolves and stores the account name. The worker verifies pending transfers by reference and settles only recognized terminal outcomes.
 - **CSRF and webhooks:** Mutating browser requests require the configured frontend origin (or matching referer) and JSON content type. Webhook paths are exempt from this browser-origin check and use their provider-specific validation. Paystack webhook parsing allows up to 100 KB; the general webhook parser remains 10 KB.
-- **Provider configuration:** Startup requires canonical `VTPASS_API_KEY`, `VTPASS_PUBLIC_KEY`, and `VTPASS_SECRET_KEY`. Legacy `VTU_PASS_*` aliases are no longer read. In production, sandbox VTpass URLs and Paystack test secret keys are rejected unless the VTpass sandbox override is explicitly enabled.
+- **Provider configuration:** Startup requires canonical `VTPASS_API_KEY`, `VTPASS_PUBLIC_KEY`, and `VTPASS_SECRET_KEY`. Legacy `VTU_PASS_*` aliases are no longer read. VTpass uses `VTPASS_BASE_URL` if configured and otherwise defaults to sandbox, including in production. For live VTpass, configure the live URL (`https://vtpass.com`) as well as live keys. A Paystack test secret key logs a warning in production and keeps Paystack in test mode.
 - **Float top-up tooling:** A manual ledger top-up script exists, but it was not run. Validate its accounting source/reference and review the provider's balance before using it.
 
 ## Risks and work remaining
 
 1. **Identify the two unmatched deposits.** Their references and provenance need a careful manual review. The worker will continue emitting an integrity alert while they remain unmatched.
-2. **Confirm Render configuration.** This review did not inspect deployment variables. Render must use the canonical `VTPASS_*` names, a production VTpass endpoint for live purchases, the intended database branch, and the expected frontend origin. Do not enable the sandbox-in-production override for a live service.
+2. **Confirm Render configuration.** This review did not inspect deployment variables. Render must use the canonical `VTPASS_*` names, the intended database branch, and the expected frontend origin. Before VTpass go-live, change both the keys and `VTPASS_BASE_URL` to the live endpoint.
 3. **Deploy schema before worker code.** Apply the additive migration to the intended deployment database before starting a version that runs the reconciliation worker. The local database `JobLease` presence does not prove Render has it.
 4. **Add provider-mocked integration and browser tests.** Current verification covers unit tests, types, lint, and build, not end-to-end money flows or provider callback/recovery behavior against a disposable database.
 5. **Review alert operations.** The worker writes structured events to application logs. Render alert routing, dashboards, backup/restore drills, and an owner for unresolved transactions remain unverified.
