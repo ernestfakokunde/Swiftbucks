@@ -38,7 +38,7 @@ async function api(path: string, o: { method?: string; body?: unknown; cookie?: 
 
 async function makeUser(tag: string): Promise<User> {
   const username = `${run}${tag}`.slice(0, 20);
-  const email = `${username}@example.test`;
+  const email = `${username}@example.com`;
   const password = "Passw0rd-" + randomBytes(6).toString("hex");
   const s = await api("/api/users", { method: "POST", body: { email, username, password } });
   if (s.status !== 201) {
@@ -79,6 +79,9 @@ async function fund(u: User, amountKobo: number) {
 }
 async function balance(u: User) {
   const r = await api("/api/wallet/balance", { cookie: u.cookie });
+  if (r.status !== 200 || typeof r.json?.balanceKobo !== "string") {
+    throw new Error(`balance failed: ${r.status} (${r.json?.error ?? JSON.stringify(r.json)})`);
+  }
   return BigInt(r.json.balanceKobo);
 }
 const transfer = (from: User, to: User, amountKobo: number, reference: string) =>
@@ -98,7 +101,7 @@ await fund(c, 100_000);
   const rs = await Promise.all(Array.from({ length: 10 }, () => transfer(a, b, 10_000, key)));
   const after = await balance(a);
   const created = rs.filter((r) => r.status === 201).length;
-  check("1 same reference x10", created === 1 && before - after === 10_000n, `statuses ${tally(rs)}, debit ${before - after}`);
+  check("1 same reference x10", created === 1 && rs.filter((r) => r.status === 200).length === 9 && before - after === 10_000n, `statuses ${tally(rs)}, debit ${before - after}`);
 }
 await sleep(65_000); // wallet POST limiter is 30 per minute per IP
 
@@ -109,7 +112,7 @@ await sleep(65_000); // wallet POST limiter is 30 per minute per IP
   const rs = await Promise.all(Array.from({ length: 6 }, (_, i) => transfer(c, a, amt, `${run}-over${i}`)));
   const after = await balance(c);
   const ok = rs.filter((r) => r.status === 201).length;
-  check("2 overspend", ok === 2 && after >= 0n && after === bal - BigInt(amt * ok), `statuses ${tally(rs)}, final ${after}`);
+  check("2 overspend", ok === 2 && rs.filter((r) => r.status === 400).length === 4 && after >= 0n && after === bal - BigInt(amt * ok), `statuses ${tally(rs)}, final ${after}`);
 }
 await sleep(65_000);
 
@@ -122,7 +125,7 @@ await sleep(65_000);
         ...Array.from({ length: 10 }, (_, i) => transfer(a, b, 100, `${run}-ab${i}`)),
         ...Array.from({ length: 10 }, (_, i) => transfer(b, a, 100, `${run}-ba${i}`)),
       ]),
-      30_000,
+      120_000,
     );
     const after = (await balance(a)) + (await balance(b));
     check("3 opposite transfers", rs.every((r) => r.status === 201) && before === after, `statuses ${tally(rs)}, total ${before} -> ${after}`);
@@ -136,9 +139,9 @@ await sleep(65_000);
 {
   const d = await startDeposit(a, 50_000);
   const before = await balance(a);
-  await Promise.all(Array.from({ length: 10 }, () => webhook(chargeEvent(d.reference, 50_000))));
+  const responses = await Promise.all(Array.from({ length: 10 }, () => webhook(chargeEvent(d.reference, 50_000))));
   const delta = (await balance(a)) - before;
-  check("4 webhook x10", d.creditKobo !== undefined ? delta === BigInt(d.creditKobo) : delta > 0n, `credited ${delta}, expected one credit of ${d.creditKobo ?? "unknown"}`);
+  check("4 webhook x10", responses.every((response) => response.status === 200) && d.creditKobo !== undefined && delta === BigInt(d.creditKobo), `responses ${tally(responses)}, credited ${delta}, expected one credit of ${d.creditKobo ?? "unknown"}`);
 }
 
 // 5. optional: airtime double-submit

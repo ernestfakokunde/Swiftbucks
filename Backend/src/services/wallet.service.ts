@@ -13,8 +13,9 @@ import { withdrawalFeeKobo, paystackTransferCostKobo, stampDutyKobo, totalDeposi
 export { AppError };
 
 function isUniqueViolation(error: unknown): boolean {
-    return typeof error === "object" && error !== null && "code" in error
-        && (error as { code?: unknown }).code === "23505";
+    if (typeof error !== "object" || error === null) return false;
+    const pgError = error as { code?: unknown; sqlState?: unknown };
+    return pgError.code === "23505" || pgError.sqlState === "23505";
 }
  
 
