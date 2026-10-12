@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'957f4f297a2bc71e5afb999768ed5b2a9c435c98739602c0d6f79a7aa4285a09'>;
+  StorageHashBase<'c14d04dadcc52fdedd18639eb7b4c138ef4f8074e0e0227474bc2007a52c2238'>;
 export type ExecutionHash =
-  ExecutionHashBase<'d87241eacfa39b1cc792ec4a6a6bf8a43ca873e4985a6d9c8133731d04b6a92a'>;
+  ExecutionHashBase<'6dc818c0cffe27f8f8e814f36718cfb42a81cc2f7509a211dbc3f719a61ddc7b'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -278,6 +278,15 @@ export type FieldOutputTypes = {
       readonly userId: CodecTypes['pg/int4@1']['output'];
       readonly variationCode: CodecTypes['pg/text@1']['output'] | null;
     };
+    readonly JobLease: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastBalanceCheckAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly lockedUntil: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly name: CodecTypes['pg/text@1']['output'];
+      readonly owner: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['output'];
       readonly amountKobo: CodecTypes['pg/int8@1']['output'];
@@ -370,6 +379,15 @@ export type FieldInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
       readonly variationCode: CodecTypes['pg/text@1']['input'] | null;
+    };
+    readonly JobLease: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastBalanceCheckAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly lockedUntil: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly name: CodecTypes['pg/text@1']['input'];
+      readonly owner: CodecTypes['pg/text@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['input'];
@@ -464,6 +482,15 @@ export type StorageColumnTypes = {
       readonly userId: CodecTypes['pg/int4@1']['output'];
       readonly variationCode: CodecTypes['pg/text@1']['output'] | null;
     };
+    readonly JobLease: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastBalanceCheckAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly lockedUntil: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly name: CodecTypes['pg/text@1']['output'];
+      readonly owner: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['output'];
       readonly amountKobo: CodecTypes['pg/int8@1']['output'];
@@ -556,6 +583,15 @@ export type StorageColumnInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
       readonly variationCode: CodecTypes['pg/text@1']['input'] | null;
+    };
+    readonly JobLease: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastBalanceCheckAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly lockedUntil: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly name: CodecTypes['pg/text@1']['input'];
+      readonly owner: CodecTypes['pg/text@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly LedgerEntry: {
       readonly accountId: CodecTypes['pg/int4@1']['input'];
@@ -656,6 +692,16 @@ export namespace Models {
     user: public_User;
     readonly [RelationKeys]?: 'transaction' | 'user';
   };
+  export type public_JobLease = {
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    id: CodecTypes['pg/int4@1']['output'];
+    lastBalanceCheckAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+    lockedUntil: CodecTypes['pg/timestamptz-string@1']['output'];
+    name: CodecTypes['pg/text@1']['output'];
+    owner: CodecTypes['pg/text@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    readonly [RelationKeys]?: never;
+  };
   export type public_LedgerEntry = {
     accountId: CodecTypes['pg/int4@1']['output'];
     amountKobo: CodecTypes['pg/int8@1']['output'];
@@ -742,6 +788,7 @@ export declare const models: {
   public: {
     Account: Models.public_Account;
     BillPurchase: Models.public_BillPurchase;
+    JobLease: Models.public_JobLease;
     LedgerEntry: Models.public_LedgerEntry;
     Session: Models.public_Session;
     Transaction: Models.public_Transaction;
@@ -946,9 +993,27 @@ type ContractBase = Omit<
               ];
               indexes: readonly [
                 {
+                  readonly name: 'BillPurchase_status_updatedAt_idx_29f913bb';
+                  readonly prefix: 'BillPurchase_status_updatedAt_idx';
+                  readonly columns: readonly ['status', 'updatedAt'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'BillPurchase_userId_customerRef_createdAt_idx_369b109a';
+                  readonly prefix: 'BillPurchase_userId_customerRef_createdAt_idx';
+                  readonly columns: readonly ['userId', 'customerRef', 'createdAt'];
+                  readonly unique: false;
+                },
+                {
                   readonly name: 'BillPurchase_userId_idx_a489d58a';
                   readonly prefix: 'BillPurchase_userId_idx';
                   readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'BillPurchase_userId_status_createdAt_idx_4ae7139f';
+                  readonly prefix: 'BillPurchase_userId_status_createdAt_idx';
+                  readonly columns: readonly ['userId', 'status', 'createdAt'];
                   readonly unique: false;
                 },
               ];
@@ -978,6 +1043,54 @@ type ContractBase = Omit<
                   };
                 },
               ];
+            };
+            readonly JobLease: {
+              columns: {
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly lastBalanceCheckAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly lockedUntil: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+                readonly name: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly owner: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['name'] }];
+              indexes: readonly [];
+              foreignKeys: readonly [];
             };
             readonly LedgerEntry: {
               columns: {
@@ -1114,6 +1227,12 @@ type ContractBase = Omit<
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [{ readonly columns: readonly ['reference'] }];
               indexes: readonly [
+                {
+                  readonly name: 'paymentIntent_status_createdAt_idx_58610442';
+                  readonly prefix: 'paymentIntent_status_createdAt_idx';
+                  readonly columns: readonly ['status', 'createdAt'];
+                  readonly unique: false;
+                },
                 {
                   readonly name: 'paymentIntent_userId_idx_a489d58a';
                   readonly prefix: 'paymentIntent_userId_idx';
@@ -1410,6 +1529,12 @@ type ContractBase = Omit<
               ];
               indexes: readonly [
                 {
+                  readonly name: 'Withdrawal_status_createdAt_idx_58610442';
+                  readonly prefix: 'Withdrawal_status_createdAt_idx';
+                  readonly columns: readonly ['status', 'createdAt'];
+                  readonly unique: false;
+                },
+                {
                   readonly name: 'Withdrawal_transferCode_idx_780d1215';
                   readonly prefix: 'Withdrawal_transferCode_idx';
                   readonly columns: readonly ['transferCode'];
@@ -1465,6 +1590,7 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'BillPurchase';
     };
+    readonly JobLease: { readonly namespace: 'public' & NamespaceId; readonly model: 'JobLease' };
     readonly LedgerEntry: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'LedgerEntry';
@@ -1679,6 +1805,64 @@ type ContractBase = Omit<
                 readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly userId: { readonly column: 'userId' };
                 readonly variationCode: { readonly column: 'variationCode' };
+              };
+            };
+          };
+          readonly JobLease: {
+            readonly fields: {
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly lastBalanceCheckAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly lockedUntil: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly name: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly owner: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'JobLease';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly lastBalanceCheckAt: { readonly column: 'lastBalanceCheckAt' };
+                readonly lockedUntil: { readonly column: 'lockedUntil' };
+                readonly name: { readonly column: 'name' };
+                readonly owner: { readonly column: 'owner' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
               };
             };
           };
@@ -2208,6 +2392,15 @@ type ContractBase = Omit<
           readonly onUpdate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
             readonly entry: 'BillPurchase';
+            readonly field: 'updatedAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
+          readonly onUpdate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'JobLease';
             readonly field: 'updatedAt';
             readonly namespace: 'public';
           };

@@ -54,6 +54,15 @@ export const bankResolveLimiter = rateLimit({
   handler: (_req, res) => res.status(429).json(tooManyRequests.message),
 });
 
+export const bankListLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.userId ?? req.ip),
+  handler: (_req, res) => res.status(429).json(tooManyRequests.message),
+});
+
 export const quoteLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 30,

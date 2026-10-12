@@ -28,8 +28,6 @@ const withdrawalSchema = moneySchema.extend({
   amountKobo: z.number().int().safe().min(50_000).max(10_000_000_000),
   bankCode: z.string().regex(/^\d{3,6}$/),
   accountNumber: z.string().regex(/^\d{10}$/),
-  bankName: z.string().min(1).max(100),
-  accountName: z.string().min(1).max(200),
 });
 
 const transferSchema = moneySchema.extend({
@@ -90,9 +88,7 @@ export async function withdrawFunds(req: Request, res: Response) {
     parsed.data.reference,
     {
       bankCode: parsed.data.bankCode,
-      bankName: parsed.data.bankName,
       accountNumber: parsed.data.accountNumber,
-      accountName: parsed.data.accountName,
     },
   );
 

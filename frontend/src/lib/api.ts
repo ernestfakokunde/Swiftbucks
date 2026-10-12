@@ -82,11 +82,19 @@ export async function request<T>(
 ): Promise<T> {
   let response: Response;
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 30_000);
+  let timedOut = false;
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 30_000);
+  const callerSignal = options?.signal;
+  const abortFromCaller = () => controller.abort(callerSignal?.reason);
+  if (callerSignal?.aborted) abortFromCaller();
+  else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
   try {
     response = await fetch(path, {
       ...options,
-      signal: options?.signal ?? controller.signal,
+      signal: controller.signal,
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
@@ -95,7 +103,7 @@ export async function request<T>(
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new ApiError(0, "The request took too long. Please try again.");
+      throw new ApiError(0, timedOut ? "The request took too long. Please try again." : "The request was cancelled.");
     }
     throw new ApiError(
       0,
@@ -103,6 +111,7 @@ export async function request<T>(
     );
   } finally {
     window.clearTimeout(timeout);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
 
   if (response.status === 204) return undefined as T;
@@ -171,12 +180,10 @@ export function withdraw(
   reference: string,
   bankCode: string,
   accountNumber: string,
-  bankName: string,
-  accountName: string,
 ) {
   return request<MoneyResult>("/api/wallet/withdraw", {
     method: "POST",
-    body: JSON.stringify({ amountKobo, reference, bankCode, accountNumber, bankName, accountName }),
+    body: JSON.stringify({ amountKobo, reference, bankCode, accountNumber }),
   });
 }
 

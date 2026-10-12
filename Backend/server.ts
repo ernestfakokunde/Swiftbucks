@@ -11,18 +11,24 @@ import webhookRoutes from "./src/routes/webhook.routes.js";
 import billsRoutes from "./src/routes/bills.routes.js";
 import { errorHandler } from "./src/middleware/errorHandler.js";
 import { seedSystemAccounts } from "./src/services/systemAccounts.service.js";
-import { reconcileBills } from "./src/services/bills.service.js";
+import { reconcileFinancialFlows } from "./src/services/reconcile.service.js";
 import { refreshAvailableDataServices } from "./src/services/dataPlans.service.js";
+import { csrfProtection } from "./src/middleware/csrf.js";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
 }
-for (const [primary, legacy] of [
-  ["VTPASS_API_KEY", "VTU_PASS_API_KEY"],
-  ["VTPASS_PUBLIC_KEY", "VTU_PASS_PUBLIC_KEY"],
-  ["VTPASS_SECRET_KEY", "VTU_PASS_SECRET_KEY"],
-] as const) {
-  if (!process.env[primary] && !process.env[legacy]) throw new Error(`${primary} is required`);
+for (const key of ["VTPASS_API_KEY", "VTPASS_PUBLIC_KEY", "VTPASS_SECRET_KEY"] as const) {
+  if (!process.env[key]) throw new Error(`${key} is required`);
+}
+if (process.env.NODE_ENV === "production") {
+  const vtpassUrl = process.env.VTPASS_BASE_URL ?? "https://sandbox.vtpass.com";
+  if (vtpassUrl.toLowerCase().includes("sandbox") && process.env.ALLOW_SANDBOX_IN_PRODUCTION !== "true") {
+    throw new Error("VTpass sandbox URL is not allowed in production without ALLOW_SANDBOX_IN_PRODUCTION=true");
+  }
+  if (process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test")) {
+    throw new Error("Paystack test keys are not allowed in production");
+  }
 }
 
 const app = express();
@@ -35,17 +41,30 @@ app.use(
   }),
 );
 
+app.use("/api/webhooks/paystack", express.json({
+  limit: "100kb",
+  verify: (req, _res, buf) => { (req as Request).rawBody = buf; },
+}));
 app.use("/api/webhooks", express.json({
   limit: "10kb",
   verify: (req, _res, buf) => { (req as Request).rawBody = buf; },
 }));
 app.use(cookieParser());
+app.use(csrfProtection);
 
 app.get("/", (req, res) => {
   res.send("Hello Swiftbuck api at your service");
 });
 app.get("/health", (req, res) => {
   res.send("Swiftbuck api is healthy");
+});
+app.get("/ready", async (_req, res) => {
+  try {
+    await db.transaction(async (tx) => tx.query(db.raw.sql`SELECT 1 AS ready`.returnsRow({ ready: "pg/int4@1" }).build()));
+    return res.status(200).json({ ready: true });
+  } catch {
+    return res.status(503).json({ ready: false });
+  }
 });
 
 app.use(express.json({
@@ -65,4 +84,4 @@ await refreshAvailableDataServices();
 app.listen(PORT, () => {
   console.log("Server is running quieltly on port " + PORT);
 });
-setInterval(() => void reconcileBills().catch((error) => console.error("BILLS_RECONCILE_FAILED", error)), 60_000);
+setInterval(() => void reconcileFinancialFlows().catch((error) => console.error("BILLS_RECONCILE_FAILED", error)), 60_000);

@@ -38,5 +38,5 @@ export const useTransfer = () =>
 
 export const useWithdraw = () =>
   useMoneyAction<{ amount: string; bankCode: string; accountNumber: string; bankName: string; accountName: string }>("wd", (v, reference) =>
-    withdraw(toKobo(v.amount), reference, v.bankCode, v.accountNumber, v.bankName, v.accountName),
+    withdraw(toKobo(v.amount), reference, v.bankCode, v.accountNumber),
   );

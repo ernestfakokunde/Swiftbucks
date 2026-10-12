@@ -84,7 +84,7 @@ export function FlowForm({ mode }: { mode: FlowMode }) {
     mutationFn: async () => {
       if (amount === null) throw new Error("Enter a valid amount");
       if (isSend) return transfer(username, amount, reference.get());
-      if (isWithdraw) return withdraw(amount, reference.get(), submitted?.bank ?? "", submitted?.accountNumber ?? "", banksQuery.data?.find((bank) => bank.code === submitted?.bank)?.name ?? "", submitted?.accountName ?? "");
+      if (isWithdraw) return withdraw(amount, reference.get(), submitted?.bank ?? "", submitted?.accountNumber ?? "");
       const result = await initializeDeposit(amount);
       const url = new URL(result.authorizationUrl);
       if (url.protocol !== "https:" || (url.hostname !== "paystack.com" && !url.hostname.endsWith(".paystack.com"))) {

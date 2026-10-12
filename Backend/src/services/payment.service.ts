@@ -81,8 +81,30 @@ export async function creditFromWebhook(event: {
     currency: string;
     fees?: number | undefined;
   };
-}) {
+}, feeResolution?: { attempted: true; feeKobo?: number | undefined }) {
   if (event.event !== "charge.success") return;
+
+  let verifiedFee = event.data.fees;
+  if (verifiedFee === undefined && feeResolution?.attempted) {
+    verifiedFee = feeResolution.feeKobo;
+  }
+  if (verifiedFee === undefined && !feeResolution?.attempted) {
+    try {
+      const verified = await verifyTransaction(event.data.reference);
+      if (
+        verified.status === "success" &&
+        verified.reference === event.data.reference &&
+        verified.amount === event.data.amount &&
+        verified.currency === event.data.currency &&
+        verified.fees !== undefined
+      ) {
+        verifiedFee = verified.fees;
+      }
+    } catch {
+      // The signed webhook remains sufficient to credit the deposit; record the unknown fee below.
+    }
+    if (verifiedFee === undefined) console.error("DEPOSIT_FEE_UNKNOWN", event.data.reference);
+  }
 
   const intent = await db.orm.public.paymentIntent.where({
     reference: event.data.reference,
@@ -97,7 +119,8 @@ export async function creditFromWebhook(event: {
     );
 
     const fresh = await tx.orm.public.paymentIntent.where({ id: intent.id }).first();
-    if (!fresh || fresh.status !== "PENDING") return;
+    if (!fresh || (fresh.status !== "PENDING" && fresh.status !== "EXPIRED")) return;
+    const wasExpired = fresh.status === "EXPIRED";
 
     if (
       event.data.currency !== "NGN" ||
@@ -109,10 +132,7 @@ export async function creditFromWebhook(event: {
       console.error("Deposit amount or currency mismatch for", fresh.reference);
       return;
     }
-    const actualFee = event.data.fees ?? 0;
-    if (event.data.fees === undefined) {
-      console.warn("DEPOSIT_FEE_MISSING", fresh.reference);
-    }
+    const actualFee = verifiedFee ?? 0;
     if (!Number.isSafeInteger(actualFee) || actualFee < 0 || actualFee > event.data.amount) {
       await tx.orm.public.paymentIntent.where({ id: fresh.id }).update({
         status: "MISMATCH",
@@ -186,5 +206,6 @@ export async function creditFromWebhook(event: {
     await tx.orm.public.paymentIntent.where({ id: fresh.id }).update({
       status: "SUCCESS",
     });
+    if (wasExpired) console.warn("DEPOSIT_LATE_SUCCESS", fresh.reference);
   });
 }

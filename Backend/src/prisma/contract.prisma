@@ -30,6 +30,16 @@ model Account {
   @@index([userId])
 }
 
+model JobLease {
+  id                  Int               @id @default(autoincrement())
+  name                String            @unique
+  owner               String
+  lockedUntil         TimestamptzString
+  lastBalanceCheckAt  TimestamptzString?
+  createdAt           TimestamptzString @default(now())
+  updatedAt           temporal.updatedAtString()
+}
+
 model Transaction {
   id           Int               @id @default(autoincrement())
   reference    String            @unique
@@ -83,6 +93,7 @@ model Session {
   user       User              @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([status, createdAt])
 }
 
 model Withdrawal {
@@ -110,6 +121,7 @@ model Withdrawal {
 
   @@index([userId])
   @@index([transferCode])
+  @@index([status, createdAt])
   @@unique([userId, idempotencyKey])
 }
 
@@ -139,4 +151,7 @@ model BillPurchase {
 
   @@unique([userId, idempotencyKey])
   @@index([userId])
+  @@index([status, updatedAt])
+  @@index([userId, status, createdAt])
+  @@index([userId, customerRef, createdAt])
 }

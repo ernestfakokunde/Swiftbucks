@@ -8,6 +8,7 @@ const SYSTEM_ACCOUNT_KINDS = [
   "SYSTEM_BILLS_PENDING",
   "SYSTEM_VTPASS_FLOAT",
   "SYSTEM_BILLS_REVENUE",
+  "SYSTEM_OWNER_EQUITY",
 ] as const;
 
 export async function seedSystemAccounts() {

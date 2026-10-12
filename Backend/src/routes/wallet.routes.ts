@@ -22,6 +22,7 @@ import {
   depositStatusLimiter,
   bankResolveLimiter,
   quoteLimiter,
+  bankListLimiter,
 } from "../middleware/rateLimit.js";
 import { banks, resolve } from "../controllers/bank.controller.js";
 
@@ -29,7 +30,7 @@ const router = Router();
 
 router.post("/users", signupLimiter, createUser);
 router.use(requireAuth);
-router.get("/banks", banks);
+router.get("/banks", bankListLimiter, banks);
 router.get("/banks/resolve", bankResolveLimiter, resolve);
 router.get("/wallet/balance", getBalance);
 router.get("/wallet/transactions", getTransactionHistory);

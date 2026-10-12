@@ -236,6 +236,7 @@ export async function purchaseDataBill(userId: number, input: { idempotencyKey: 
 export async function requeryPurchase(id: number) {
   const purchase = await db.orm.public.BillPurchase.where({ id }).first();
   if (!purchase) return null;
+  if (purchase.status !== "PROCESSING" && purchase.status !== "RESERVED") return "PENDING";
   try {
     const response = await vtpassProvider.requery(purchase.providerRequestId);
     const details = vtpassResponseDetails(response);
@@ -263,26 +264,26 @@ export async function requeryPurchase(id: number) {
   }
 }
 
-export async function reconcileBills() {
-  const purchases = await db.orm.public.BillPurchase.all();
+export async function reconcilePendingBills(beforeRequery?: () => Promise<boolean>) {
+  const [processing, reserved] = await Promise.all([
+    db.orm.public.BillPurchase.where({ status: "PROCESSING" }).all(),
+    db.orm.public.BillPurchase.where({ status: "RESERVED" }).all(),
+  ]);
+  const purchases = [...processing, ...reserved];
   const now = Date.now();
+  let checked = 0;
   for (const purchase of purchases) {
     const age = now - new Date(purchase.updatedAt).getTime();
     if ((purchase.status === "PROCESSING" && age > 120_000) || (purchase.status === "RESERVED" && age > 60_000)) {
+      if (beforeRequery && !await beforeRequery()) break;
       await requeryPurchase(purchase.id);
+      checked += 1;
     }
     if ((purchase.status === "PROCESSING" || purchase.status === "RESERVED") && age > 86_400_000) {
       console.error("RECONCILE_ALERT", purchase.providerRequestId);
     }
   }
-  try {
-    const balance = await vtpassProvider.balance();
-    const root = balance && typeof balance === "object" ? balance as { contents?: { balance?: number }; balance?: number } : {};
-    const kobo = Math.round((root.contents?.balance ?? root.balance ?? 0) * 100);
-    if (kobo < Number(process.env.BILLS_FLOAT_MIN_KOBO ?? 100_000)) console.error("BILLS_FLOAT_LOW", kobo);
-  } catch (error) {
-    console.error("BILLS_FLOAT_BALANCE_FAILED", error instanceof Error ? error.message : "provider error");
-  }
+  return { candidates: purchases.length, checked };
 }
 
 export async function getUserPurchases(userId: number) {

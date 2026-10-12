@@ -12,6 +12,10 @@
       "model": "BillPurchase",
       "namespace": "public"
     },
+    "JobLease": {
+      "model": "JobLease",
+      "namespace": "public"
+    },
     "LedgerEntry": {
       "model": "LedgerEntry",
       "namespace": "public"
@@ -366,6 +370,87 @@
               },
               "namespaceId": "public",
               "table": "BillPurchase"
+            }
+          },
+          "JobLease": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastBalanceCheckAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "lockedUntil": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "owner": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "lastBalanceCheckAt": {
+                  "column": "lastBalanceCheckAt"
+                },
+                "lockedUntil": {
+                  "column": "lockedUntil"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "owner": {
+                  "column": "owner"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "JobLease"
             }
           },
           "LedgerEntry": {
@@ -1371,10 +1456,39 @@
               "indexes": [
                 {
                   "columns": [
+                    "status",
+                    "updatedAt"
+                  ],
+                  "name": "BillPurchase_status_updatedAt_idx_29f913bb",
+                  "prefix": "BillPurchase_status_updatedAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId",
+                    "customerRef",
+                    "createdAt"
+                  ],
+                  "name": "BillPurchase_userId_customerRef_createdAt_idx_369b109a",
+                  "prefix": "BillPurchase_userId_customerRef_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "userId"
                   ],
                   "name": "BillPurchase_userId_idx_a489d58a",
                   "prefix": "BillPurchase_userId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId",
+                    "status",
+                    "createdAt"
+                  ],
+                  "name": "BillPurchase_userId_status_createdAt_idx_4ae7139f",
+                  "prefix": "BillPurchase_userId_status_createdAt_idx",
                   "unique": false
                 }
               ],
@@ -1398,6 +1512,67 @@
                   "columns": [
                     "userId",
                     "idempotencyKey"
+                  ]
+                }
+              ]
+            },
+            "JobLease": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "lastBalanceCheckAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "lockedUntil": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "owner": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "name"
                   ]
                 }
               ]
@@ -1850,6 +2025,15 @@
               "indexes": [
                 {
                   "columns": [
+                    "status",
+                    "createdAt"
+                  ],
+                  "name": "Withdrawal_status_createdAt_idx_58610442",
+                  "prefix": "Withdrawal_status_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "transferCode"
                   ],
                   "name": "Withdrawal_transferCode_idx_780d1215",
@@ -1969,6 +2153,15 @@
               "indexes": [
                 {
                   "columns": [
+                    "status",
+                    "createdAt"
+                  ],
+                  "name": "paymentIntent_status_createdAt_idx_58610442",
+                  "prefix": "paymentIntent_status_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "userId"
                   ],
                   "name": "paymentIntent_userId_idx_a489d58a",
@@ -1995,10 +2188,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "957f4f297a2bc71e5afb999768ed5b2a9c435c98739602c0d6f79a7aa4285a09"
+    "storageHash": "c14d04dadcc52fdedd18639eb7b4c138ef4f8074e0e0227474bc2007a52c2238"
   },
   "execution": {
-    "executionHash": "d87241eacfa39b1cc792ec4a6a6bf8a43ca873e4985a6d9c8133731d04b6a92a",
+    "executionHash": "6dc818c0cffe27f8f8e814f36718cfb42a81cc2f7509a211dbc3f719a61ddc7b",
     "mutations": {
       "defaults": [
         {
@@ -2012,6 +2205,21 @@
           },
           "ref": {
             "entry": "BillPurchase",
+            "field": "updatedAt",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "JobLease",
             "field": "updatedAt",
             "namespace": "public"
           }

@@ -128,9 +128,7 @@ export async function getBalanceKobo (userId: number) {
 
  export async function withdraw (userId:number, amountKobo: bigint, idempotencyKey: string, input: {
     bankCode: string;
-    bankName: string;
     accountNumber: string;
-    accountName: string;
  }){
     if (amountKobo < 50_000n || amountKobo > 10_000_000_000n) {
         throw new AppError(400, "Invalid withdrawal amount");
@@ -244,9 +242,7 @@ export async function getBalanceKobo (userId: number) {
             estimatedCostKobo,
             bankCode: input.bankCode,
             accountNumber: null,
-            bankName: input.bankName,
             accountLast4,
-            accountName: input.accountName,
             idempotencyKey,
         });
         return { transactionId: transaction.id, withdrawalId: withdrawal.id, duplicate: false, status: "PENDING" as const };
@@ -276,10 +272,6 @@ export async function getBalanceKobo (userId: number) {
     } catch (error) {
         await reverseWithdrawal(reference, "FAILED");
         throw error;
-    }
-    if (resolved.account_name !== input.accountName) {
-        await reverseWithdrawal(reference, "FAILED");
-        throw new AppError(409, "Bank account name changed. Please verify it again.");
     }
     await db.orm.public.Withdrawal.where({ id: result.withdrawalId }).update({
         accountName: resolved.account_name,

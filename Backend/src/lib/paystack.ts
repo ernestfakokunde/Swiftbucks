@@ -123,6 +123,17 @@ export async function verifyTransfer(transferCode: string) {
   }>(`/transfer/${encodeURIComponent(transferCode)}`);
 }
 
+export async function verifyTransferByReference(reference: string) {
+  return paystackGet<{
+    transfer_code: string;
+    reference: string;
+    amount: number;
+    currency: string;
+    status: string;
+    fees?: number;
+  }>(`/transfer/verify/${encodeURIComponent(reference)}`);
+}
+
 export async function listBanks() {
   return paystackGet<Array<{ name: string; code: string; active: boolean; currency?: string }>>(
     "/bank?currency=NGN&perPage=100",
