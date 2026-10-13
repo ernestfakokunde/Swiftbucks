@@ -74,8 +74,13 @@ async function reserve(userId: number, input: ReservationInput) {
       const wallet = await tx.orm.public.Account.where({ userId, kind: "USER_WALLET" }).first();
       const pending = await tx.orm.public.Account.where({ kind: "SYSTEM_BILLS_PENDING" }).first();
       if (!wallet || !pending) throw new Error("Bill payment system accounts are missing");
-      const entries = await tx.orm.public.LedgerEntry.where({ accountId: wallet.id }).all();
-      const balance = entries.reduce((sum, entry) => sum + BigInt(entry.amountKobo), 0n);
+      const balanceResult = await tx.query(db.raw.sql`
+        SELECT COALESCE(SUM("amountKobo"), 0)::text AS "balanceKobo"
+        FROM "LedgerEntry"
+        WHERE "accountId" = ${wallet.id}
+      `.returnsRow({ balanceKobo: "pg/text@1" }).build());
+      const balanceRow = Array.isArray(balanceResult) ? balanceResult[0] : balanceResult;
+      const balance = BigInt(balanceRow?.balanceKobo ?? "0");
       if (balance < BigInt(input.amountKobo)) throw new AppError(400, "Insufficient funds");
       const reference = generateProviderRequestId();
       const transaction = await tx.orm.public.Transaction.create({ reference, type: "BILL_PAYMENT", status: "PENDING" });

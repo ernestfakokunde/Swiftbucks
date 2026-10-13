@@ -60,15 +60,13 @@ export async function getBalanceKobo (userId: number) {
         throw new AppError(404, "Wallet not found");
     }
 
-    const entries = await db.orm.public.LedgerEntry.where({
-        accountId: wallet.id,
-    }).all();
-
-    let total = BigInt(0);
-    for (const entry of entries) {
-        total += BigInt(entry.amountKobo);
-    }
-    return total;
+    const result = await db.transaction((tx) => tx.query(db.raw.sql`
+        SELECT COALESCE(SUM("amountKobo"), 0)::text AS "balanceKobo"
+        FROM "LedgerEntry"
+        WHERE "accountId" = ${wallet.id}
+    `.returnsRow({ balanceKobo: "pg/text@1" }).build()));
+    const row = Array.isArray(result) ? result[0] : result;
+    return BigInt(row?.balanceKobo ?? "0");
 }
 
 //deposit and withdraw functions will be added here in the future
@@ -189,14 +187,13 @@ export async function getBalanceKobo (userId: number) {
         )
 
         //then check balance
-                const entries = await tx.orm.public.LedgerEntry.where({
-            accountId: wallet.id,
-        }).all();
-
-        let balance = BigInt(0);
-        for (const entry of entries) {
-            balance += BigInt(entry.amountKobo);
-        }
+        const balanceResult = await tx.query(db.raw.sql`
+            SELECT COALESCE(SUM("amountKobo"), 0)::text AS "balanceKobo"
+            FROM "LedgerEntry"
+            WHERE "accountId" = ${wallet.id}
+        `.returnsRow({ balanceKobo: "pg/text@1" }).build());
+        const balanceRow = Array.isArray(balanceResult) ? balanceResult[0] : balanceResult;
+        const balance = BigInt(balanceRow?.balanceKobo ?? "0");
         if (balance < amountKobo + feeKobo) {
             throw new AppError(400, "Insufficient funds");
 }
@@ -540,14 +537,13 @@ async function reverseWithdrawal(reference: string, status: "FAILED" | "REVERSED
         }
 
         //check sender wallet balance
-        const entries = await tx.orm.public.LedgerEntry.where({
-            accountId: senderWallet.id,
-        }).all();
-
-        let balance = BigInt(0);
-        for (const entry of entries) {
-            balance += BigInt(entry.amountKobo);
-        }
+        const balanceResult = await tx.query(db.raw.sql`
+            SELECT COALESCE(SUM("amountKobo"), 0)::text AS "balanceKobo"
+            FROM "LedgerEntry"
+            WHERE "accountId" = ${senderWallet.id}
+        `.returnsRow({ balanceKobo: "pg/text@1" }).build());
+        const balanceRow = Array.isArray(balanceResult) ? balanceResult[0] : balanceResult;
+        const balance = BigInt(balanceRow?.balanceKobo ?? "0");
         if (balance < amountKobo) {
             throw new AppError(400, "Insufficient funds");
 }
